@@ -1,26 +1,174 @@
-\documentclass[aspectratio=169,11pt]{beamer}
+\documentclass[aspectratio=169]{beamer}
 
 \usetheme{metropolis}
-\setmonofont{JetBrainsMono Nerd Font}
 \setsansfont{JetBrainsMono Nerd Font}
-\setbeamertemplate{navigation symbols}{}
+\setmonofont{JetBrainsMono Nerd Font}
+
+\definecolor{themeText}{HTML}{292C3C}
+\definecolor{themeAccent}{HTML}{465AB5}
+\definecolor{themeAlert}{HTML}{D20F39}
+\definecolor{themeExample}{HTML}{179299}
+\definecolor{themeTrack}{HTML}{CCD0DA}
+
+\setbeamercolor{normal text}{fg=themeText,bg=white}
+\setbeamercolor{frametitle}{fg=white,bg=themeAccent}
+\setbeamercolor{alerted text}{fg=themeAlert}
+\setbeamercolor{example text}{fg=themeExample}
+\setbeamercolor{progress bar}{fg=themeAccent,bg=themeTrack}
+\setbeamercolor{title separator}{fg=themeAccent}
+\setbeamercolor{itemize item}{fg=themeAccent}
+\setbeamercolor{itemize subitem}{parent=itemize item}
+\setbeamercolor{itemize subsubitem}{parent=itemize item}
 
 \usepackage[english]{babel}
-\usepackage{amsmath,amssymb}
-\usepackage{graphicx}
-\usepackage{booktabs}
 
-\title{LiquidHaskell: Experience with
-Refinement Types in the Real World}
+\usepackage{listings}
+
+\lstset {
+     % language=Haskell,
+     basicstyle=\small\ttfamily,
+     frame=single,
+     numbers=left,
+     numberstyle=\tiny,
+     numbersep=5pt,
+     tabsize=2,
+     showstringspaces=false,
+}
+
+\title{LiquidHaskell: Experience with Refinement Types in the Real World}
 \subtitle{Niki Vazou, Eric L. Seidel, Ranjit Jhala}
 \author{Szabó Márk}
 \date{}
 
 \begin{document}
+\vfuzz=16pt
 
 \maketitle
 
-\begin{frame}
+\begin{frame}{Haskell's Type System}
+
+	Haskell is a \textbf{statically typed} language.
+
+	\begin{itemize}
+		\item Every expression has a type.
+		\item Types are checked before the program runs.
+		\item Types are often inferred automatically.
+	\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}[fragile]{Basic Types}
+
+	Some common built-in types:
+
+	\begin{lstlisting}[language=Haskell]
+Int       -- integer
+Float     -- floating point number
+Double    -- floating point number
+Num       -- [Int, Float, Double, ...]
+Bool      -- True or False
+Char      -- single character
+String    -- text
+\end{lstlisting}
+
+\end{frame}
+
+
+\begin{frame}[fragile]{Type Annotations}
+
+	The operator \texttt{::} means ``has type''.
+
+	\begin{lstlisting}[language=Haskell]
+age :: Int
+age = 23
+
+name :: String
+name = "Mark"
+
+active :: Bool
+active = True
+\end{lstlisting}
+
+\end{frame}
+
+
+\begin{frame}[fragile]{Function Types}
+
+	The arrow \texttt{->} separates input and output types.
+
+	\begin{lstlisting}[language=Haskell]
+add :: Int -> Int -> Int
+add x y = x + y
+\end{lstlisting}
+
+	\begin{itemize}
+		\item First \texttt{Int}: first argument
+		\item Second \texttt{Int}: second argument
+		\item Last \texttt{Int}: result
+	\end{itemize}
+
+	Equivalent in a C-like language:
+
+	\begin{lstlisting}[language=C]
+int add(int x, int y) { return a + b; }
+\end{lstlisting}
+
+\end{frame}
+
+
+\begin{frame}[fragile]{Type Inference}
+
+	Haskell can infer many types automatically.
+
+	\begin{lstlisting}[language=Haskell]
+age = 23
+double x = x * 2
+\end{lstlisting}
+
+	In GHCi we can inspect inferred types:
+
+	\begin{lstlisting}[language=Haskell]
+:t True
+True :: Bool
+
+:t "hello"
+"hello" :: String
+
+:t double
+double :: Num a => a -> a
+\end{lstlisting}
+
+\end{frame}
+
+\begin{frame}[fragile]{Limits of The Type System}
+	We can't define constraints for the types of a function like:
+
+	\begin{itemize}
+		\item Conditions about the value: x > 0
+		\item Relationships between values: a > b
+	\end{itemize}
+
+	To check for positive we need to check inside the function:
+
+	\begin{lstlisting}[language=Haskell]
+sqrtRoot :: Double -> Double
+sqrtRoot x
+  | x > 0 = sqrt x
+  | otherwise = error "x must be greater than 0"
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}{LiquidHaskell}
+	Many of these properties and relationships can be verified using a combination of \textbf{Refinement Types} and \textbf{external SMT solvers}.
+
+	This paper introduces and experiments with \textbf{LiquidHaskell} a refinement typechecker used to verify more than \textbf{10.000} lines of Haskell code across popular libraries.
+
+	Including: \emph{bytestring}, \emph{text}, \emph{vector-algorithms} and \emph{xmonad}.
+
+\end{frame}
+
+\begin{frame}{Refinement Types}
 \end{frame}
 
 \end{document}
