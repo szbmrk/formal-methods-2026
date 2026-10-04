@@ -41,7 +41,6 @@
 \date{}
 
 \begin{document}
-\vfuzz=16pt
 
 \maketitle
 
@@ -95,7 +94,7 @@ active = True
 
 \begin{frame}[fragile]{Function Types}
 
-	The arrow \texttt{->} separates input and output types.
+	The arrow (->) separates input and output types.
 
 	\begin{lstlisting}[language=Haskell]
 add :: Int -> Int -> Int
@@ -111,7 +110,7 @@ add x y = x + y
 	Equivalent in a C-like language:
 
 	\begin{lstlisting}[language=C]
-int add(int x, int y) { return a + b; }
+int add(int x, int y) { return x + y; }
 \end{lstlisting}
 
 \end{frame}
@@ -168,7 +167,162 @@ sqrtRoot x
 
 \end{frame}
 
-\begin{frame}{Refinement Types}
+\begin{frame}[fragile]{Refinement Types}
+
+	\begin{columns}[T]
+		\begin{column}{0.5\textwidth}
+
+			Refinement types:
+
+			\begin{itemize}
+				\item contain a \textbf{predicate} which is assumed to be true for any element of the refined type.
+				\item can express \textbf{preconditions} when used as function arguments or \textbf{postconditions} when used as return types.
+			\end{itemize}
+		\end{column}
+
+		\begin{column}{0.5\textwidth}
+			Examples:
+
+			\fbox{
+				\small
+				\begin{minipage}{0.9\linewidth}
+					positive natural numbers
+
+					\( x : \{ n \in \mathbb{N} \mid n > 0 \} \)
+					\newline
+
+					even natural numbers
+
+					\( x : \{ n \in \mathbb{N} \mid n \bmod 2 = 0 \} \)
+					\newline
+
+					result is a positive number
+
+					\( f : \mathbb{N} \to \{ y \in \mathbb{N} \mid y > 0 \} \)
+					\newline
+
+					result > input
+
+					\( f (x:\mathbb{N}) : \mathbb{N} \to \{ y \in \mathbb{N} \mid y > x \} \)
+				\end{minipage}
+			}
+
+		\end{column}
+	\end{columns}
+
+\end{frame}
+
+\begin{frame}{LiquidHaskell Architecture}
+	\begin{columns}[T]
+		\begin{column}{0.6\textwidth}
+			\small
+
+			\textbf{Core}
+			\begin{itemize}
+				\item Core is a simpler intermediate representation (GHC translates Haskell source to it)
+				\item Source locations are preserved for error reporting
+			\end{itemize}
+
+			\vspace{0.5em}
+
+			\textbf{Constraints}
+			\begin{itemize}
+				\item Refinement types are translated into logical constraints
+				\item These constraints describe the properties that must hold
+			\end{itemize}
+		\end{column}
+
+		\begin{column}{0.4\textwidth}
+			\centering
+			\includegraphics[
+				width=\textwidth,
+				height=0.9\textheight,
+				keepaspectratio
+			]{assets/lh-p1.pdf}
+		\end{column}
+	\end{columns}
+\end{frame}
+
+\begin{frame}{LiquidHaskell Architecture}
+	\begin{columns}[T]
+		\begin{column}{0.6\textwidth}
+			\small
+
+			\textbf{Solution}
+			\begin{itemize}
+				\item A fixpoint algorithm processes the constraints
+				\item Any \emph{SMT-LIB2} compatible solver checks whether the constraints can be satisfied (eg.: \emph{Z3}, \emph{CVC4}, \dots)
+			\end{itemize}
+
+			\vspace{0.5em}
+
+			\textbf{Result}
+			\begin{itemize}
+				\item \textbf{SAFE} or \textbf{UNSAFE}: based on the verification of the refinement properties
+				\item Errors are mapped back to their source-code locations
+			\end{itemize}
+		\end{column}
+
+		\begin{column}{0.4\textwidth}
+			\centering
+			\includegraphics[
+				width=\textwidth,
+				height=0.9\textheight,
+				keepaspectratio
+			]{assets/lh-p2.pdf}
+		\end{column}
+	\end{columns}
+\end{frame}
+
+\begin{frame}[fragile]{LiquidHaskell}
+	LiquidHaskell is an \textbf{optional} type checker for Haskell. Refinement types are written inside \textbf{comments}, so they are optional and normal Haskell compilers can ignore them:
+
+	\begin{lstlisting}[language=Haskell]
+{-@ ... @-}
+\end{lstlisting}
+
+	\begin{exampleblock}{Execution}
+		\vspace{0.1em}
+		LiquidHaskell performs static verification before the Haskell program is executed. It does not become part of the executable or perform any checks during runtime.
+	\end{exampleblock}
+\end{frame}
+
+\begin{frame}[fragile]{LiquidHaskell Basics}
+	\vspace{0.3cm}
+	\begin{lstlisting}[language=Haskell]
+{-@ type Natural = {v:Int | v >= 0} @-}
+{-@ type Pos = {v:Int | v > 0} @-}
+
+{-@ increment :: Natural -> Pos @-}
+increment :: Int -> Int
+increment x = x + 1
+
+good1 = increment 0
+good2 = increment 4
+
+-- verification will fail here stating: Type Mismatch
+bad = increment (-1)
+\end{lstlisting}
+
+\end{frame}
+
+\begin{frame}[fragile]{LiquidHaskell Basics}
+	\vspace{0.3cm}
+	\begin{lstlisting}[language=Haskell]
+{-@ type Natural = {v:Int | v >= 0} @-}
+{-@ type Pos = {v:Int | v > 0} @-}
+
+{-@ divide :: n:Natural -> d:Pos -> {v:Natural | v <= n} @-}
+divide :: Int -> Int -> Int
+divide x y = x `div` y
+
+good = divide 5 2
+
+-- With LH -> Type Mismatch before executing the code
+-- Without LH -> runtime error: divide by zero
+bad = divide 5 0
+\end{lstlisting}
+
 \end{frame}
 
 \end{document}
