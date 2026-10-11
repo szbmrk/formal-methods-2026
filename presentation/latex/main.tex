@@ -76,7 +76,7 @@ String    -- text
 
 \begin{frame}[fragile]{Type Annotations}
 
-	The operator \texttt{::} means ``has type''.
+	The operator :: means ``has type''.
 
 	\begin{lstlisting}[language=Haskell]
 age :: Int
@@ -102,9 +102,9 @@ add x y = x + y
 \end{lstlisting}
 
 	\begin{itemize}
-		\item First \texttt{Int}: first argument
-		\item Second \texttt{Int}: second argument
-		\item Last \texttt{Int}: result
+		\item First Int: first argument
+		\item Second Int: second argument
+		\item Last Int: result
 	\end{itemize}
 
 	Equivalent in a C-like language:
@@ -323,6 +323,128 @@ good = divide 5 2
 bad = divide 5 0
 \end{lstlisting}
 
+\end{frame}
+
+\begin{frame}[fragile]{LiquidHaskell Parameterized Types}
+	\textbf{Type parameters} are written as lowercase and \textbf{value parameters} are written as uppercase.
+
+	\begin{itemize}
+		\item \textbf{Type parameter:} \emph{Int}, \emph{Bool}, \emph{[Int]}
+		\item \textbf{Value parameter:} \emph{0}, \emph{10}, \emph{100}
+	\end{itemize}
+
+	\begin{lstlisting}[language=Haskell]
+{-@ type NonEmpty a = {v:[a] | len v > 0} @-}
+
+{-@ numbers :: NonEmpty Int @-}
+numbers :: [Int]
+numbers = []
+
+{-@ letters :: NonEmpty Char @-}
+letters :: [Char]
+letters = ['a', 'b', 'c']
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]{LiquidHaskell Parameterized Types}
+	\vspace{0.3cm}
+	\begin{lstlisting}[language=Haskell]
+{-@ type Rng Low High = {v:Int | v >= Low && v <= High} @-}
+
+{-@ grade :: Rng 0 100 -> Int @-}
+grade :: Int -> Int
+grade score
+    | score >= 90 = 5
+    | score >= 75 = 4
+    | score >= 60 = 3
+    | score >= 50 = 2
+    | otherwise   = 1
+
+good = grade 85
+bad  = grade 120
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]{LiquidHaskell Parameterized Types}
+	\vspace{0.3cm}
+	\begin{lstlisting}[language=Haskell]
+-- a: element type, N list length
+{-@ type ListN a N = {v:[a] | len v == N} @-}
+
+{-@ numbers :: ListN Int 3 @-}
+numbers :: [Int]
+numbers = [1, 2, 3]
+
+{-@ letters :: ListN Char 2 @-}
+letters :: [Char]
+letters = ['a', 'b']
+
+{-@ invalid :: ListN Bool 3 @-}
+invalid :: [Bool]
+invalid = [True, False]
+    \end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]{LiquidHaskell Type Aliases}
+	\textbf{Type Aliases:} used for reusability and readability.
+	\begin{lstlisting}[language=Haskell]
+-- with type alias
+{-@ predicate Between Low High V = V >= Low && V <= High @-}
+{-@ type Rng Low High = {v:Int | Between Low High v} @-}
+
+-- we can use the predicate inline as well
+{-@ grade :: Rng 0 100 -> {v:Int | Between 1 2 v} @-}
+grade :: Int -> Int
+grade score
+    | score >= 50 = 2
+    | otherwise   = 1
+
+good = grade 85
+bad  = grade 120
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]{LiquidHaskell Function Contracts}
+	\begin{itemize}
+		\item \textbf{Precondition:} Constraint on the function's inputs.
+		\item \textbf{Postcondition:} Constraint on the function's output.
+		\item \textbf{Dependent types:} Output constraints can refer to input values.
+	\end{itemize}
+
+	\begin{lstlisting}[language=Haskell]
+{-@ type Rng Low High = {v:Int | v >= Low && v <= High} @-}
+
+{-@ range :: lo:Int
+          -> hi:{Int | hi >= lo}
+          -> [Rng lo hi] @-}
+range :: Int -> Int -> [Int]
+range lo hi = [lo..hi]
+
+-- [1..5] -> [1, 2, 3, 4, 5]
+-- [5..1] -> []
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]{LiquidHaskell Contract Verification}
+	\begin{lstlisting}[language=Haskell]
+{-@ type Rng Low High = {v:Int | v >= Low && v <= High} @-}
+
+{-@ range :: lo:Int
+          -> hi:{Int | lo <= hi}
+          -> [Rng lo hi] @-}
+range :: Int -> Int -> [Int]
+range lo hi = [lo..hi]
+
+good = range 1 5
+bad  = range 5 1
+    \end{lstlisting}
+
+	\begin{itemize}
+		\item \textbf{SAFE:} range 1 5 satisfies
+		      the precondition \(1 \le 5\).
+		\item \textbf{UNSAFE:} range 5 1 violates
+		      the precondition \(5 \nleq 1\).
+	\end{itemize}
 \end{frame}
 
 \end{document}
