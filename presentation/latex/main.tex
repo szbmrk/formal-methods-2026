@@ -47,9 +47,12 @@
 \lstset{escapeinside={(*@}{@*)}}
 
 \newcommand{\codeerror}[1]{%
+  \begingroup
+  \setlength{\fboxsep}{0pt}%
   \colorbox{themeAlert!12}{%
-    \color{themeAlert}\ttfamily\strut\detokenize{#1}%
+    \hspace{3pt}\color{themeAlert}\ttfamily\strut\detokenize{#1}\hspace{3pt}%
   }%
+  \endgroup
 }
 
 \title{LiquidHaskell: Experience with Refinement Types in the Real World}
