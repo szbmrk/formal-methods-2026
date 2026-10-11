@@ -35,6 +35,14 @@
      showstringspaces=false,
 }
 
+\lstset{escapeinside={(*@}{@*)}}
+
+\newcommand{\codeerror}[1]{%
+  \colorbox{themeAlert!12}{%
+    \color{themeAlert}\ttfamily\strut\detokenize{#1}%
+  }%
+}
+
 \title{LiquidHaskell: Experience with Refinement Types in the Real World}
 \subtitle{Niki Vazou, Eric L. Seidel, Ranjit Jhala}
 \author{Szabó Márk}
@@ -301,7 +309,7 @@ good1 = increment 0
 good2 = increment 4
 
 -- verification will fail here stating: Type Mismatch
-bad = increment (-1)
+(*@\codeerror{bad = increment (-1)}@*)
 \end{lstlisting}
 
 \end{frame}
@@ -320,7 +328,7 @@ good = divide 5 2
 
 -- With LH -> Type Mismatch before executing the code
 -- Without LH -> runtime error: divide by zero
-bad = divide 5 0
+(*@\codeerror{bad = divide 5 0}@*)
 \end{lstlisting}
 
 \end{frame}
@@ -338,7 +346,7 @@ bad = divide 5 0
 
 {-@ numbers :: NonEmpty Int @-}
 numbers :: [Int]
-numbers = []
+(*@\codeerror{numbers = []}@*)
 
 {-@ letters :: NonEmpty Char @-}
 letters :: [Char]
@@ -361,7 +369,7 @@ grade score
     | otherwise   = 1
 
 good = grade 85
-bad  = grade 120
+(*@\codeerror{bad  = grade 120}@*)
 \end{lstlisting}
 \end{frame}
 
@@ -381,7 +389,7 @@ letters = ['a', 'b']
 
 {-@ invalid :: ListN Bool 3 @-}
 invalid :: [Bool]
-invalid = [True, False]
+(*@\codeerror{invalid = [True, False]}@*)
     \end{lstlisting}
 \end{frame}
 
@@ -400,7 +408,7 @@ grade score
     | otherwise   = 1
 
 good = grade 85
-bad  = grade 120
+(*@\codeerror{bad  = grade 120}@*)
 \end{lstlisting}
 \end{frame}
 
@@ -436,7 +444,7 @@ range :: Int -> Int -> [Int]
 range lo hi = [lo..hi]
 
 good = range 1 5
-bad  = range 5 1
+(*@\codeerror{bad  = range 5 1}@*)
     \end{lstlisting}
 
 	\begin{itemize}
