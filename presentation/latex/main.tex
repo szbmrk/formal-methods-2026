@@ -35,7 +35,6 @@
 \usepackage{listings}
 
 \lstset {
-     % language=Haskell,
      basicstyle=\small\ttfamily,
      frame=single,
      numbers=left,
@@ -306,7 +305,7 @@ sqrtRoot x
 \end{frame}
 
 \begin{frame}[fragile]{LiquidHaskell Basics}
-	\vspace{0.3cm}
+	\medskip
 	\begin{lstlisting}[language=Haskell]
 {-@ type Natural = {v:Int | v >= 0} @-}
 {-@ type Pos = {v:Int | v > 0} @-}
@@ -325,7 +324,7 @@ good2 = increment 4
 \end{frame}
 
 \begin{frame}[fragile]{LiquidHaskell Basics}
-	\vspace{0.3cm}
+	\medskip
 	\begin{lstlisting}[language=Haskell]
 {-@ type Natural = {v:Int | v >= 0} @-}
 {-@ type Pos = {v:Int | v > 0} @-}
@@ -365,7 +364,7 @@ letters = ['a', 'b', 'c']
 \end{frame}
 
 \begin{frame}[fragile]{LiquidHaskell Parameterized Types}
-	\vspace{0.3cm}
+	\medskip
 	\begin{lstlisting}[language=Haskell]
 {-@ type Rng Low High = {v:Int | v >= Low && v <= High} @-}
 
@@ -384,7 +383,7 @@ good = grade 85
 \end{frame}
 
 \begin{frame}[fragile]{LiquidHaskell Parameterized Types}
-	\vspace{0.3cm}
+	\medskip
 	\begin{lstlisting}[language=Haskell]
 -- a: element type, N list length
 {-@ type ListN a N = {v:[a] | len v == N} @-}
@@ -443,7 +442,8 @@ range :: Int -> Int -> [Int]
 \end{lstlisting}
 \end{frame}
 
-\begin{frame}[fragile]{LiquidHaskell Contract Verification}
+\begin{frame}[fragile]{LiquidHaskell Verification: Contracts}
+	\medskip
 	\begin{lstlisting}[language=Haskell]
 {-@ type Rng Low High = {v:Int | v >= Low && v <= High} @-}
 
@@ -465,14 +465,14 @@ good = range 1 5
 	\end{itemize}
 \end{frame}
 
-\begin{frame}[fragile]{LiquidHaskell Verification Limitations}
+\begin{frame}[fragile]{LiquidHaskell Verification: Limitations}
 	\begin{itemize}
 		\item Haskell's \texttt{[lo..hi]} is alias for \texttt{enumFromTo lo hi}.
 		\item LiquidHaskell relies on refinement specifications to reason about library functions.
 		\item Without a sufficiently precise specification for \texttt{enumFromTo}, it cannot prove that every element satisfies \texttt{Rng lo hi}.
 	\end{itemize}
 
-	\vspace{0.3cm}
+	\medskip
 
 	\begin{lstlisting}[language=Haskell]
 -- Cannot verify the postcondition
@@ -483,6 +483,63 @@ good = range 1 5
 		UNSAFE does not necessarily mean the code is wrong.
 		It can mean LiquidHaskell cannot prove its correctness.
 	\end{alertblock}
+\end{frame}
+
+\begin{frame}[fragile]{LiquidHaskell Verification: Recursive Range}
+	\begin{lstlisting}[language=Haskell]
+{-@ range :: lo:Int
+          -> hi:{Int | lo <= hi}
+          -> [Rng lo hi] @-}
+range :: Int -> Int -> [Int]
+range lo hi
+  | lo <= hi = lo : range (*@\codeerror{(lo + 1) hi}@*)
+  | otherwise = []
+\end{lstlisting}
+
+	\begin{itemize}
+		\item At \texttt{lo == hi}, the recursive call is \texttt{range (hi + 1) hi}.
+		\item Its precondition requires \(hi + 1 \le hi\), which is false.
+	\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{LiquidHaskell Verification: Fixing the Boundary}
+	\begin{lstlisting}[language=Haskell]
+{-@ range :: lo:Int
+          -> hi:{Int | lo <= hi}
+          -> [Rng lo hi] @-}
+range :: Int -> Int -> [Int]
+range lo hi
+  | lo < hi   = lo : range (*@\codeerror{(lo + 1)}@*) hi
+  | otherwise = [lo]
+\end{lstlisting}
+
+	\begin{itemize}
+		\item When \texttt{lo < hi}, integer arithmetic gives \(lo + 1 \le hi\).
+		\item Otherwise, the precondition implies \texttt{lo == hi}; return the endpoint.
+		\item Every returned element satisfies \(lo \le v \le hi\).
+		\item By default, LiquidHaskell tries to prove termination using a \textbf{decreasing argument}; here, lo increases instead.
+	\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{LiquidHaskell Verification: Proving Termination}
+	\medskip
+	\begin{lstlisting}[language=Haskell]
+{-@ range :: lo:Int
+          -> hi:{Int | lo <= hi}
+          -> [Rng lo hi] / [hi - lo] @-}
+range :: Int -> Int -> [Int]
+range lo hi
+  | lo < hi   = lo : range (lo + 1) hi
+  | otherwise = [lo]
+\end{lstlisting}
+
+	\begin{itemize}
+		\item \texttt{/ [hi - lo]} supplies an explicit \textbf{termination metric}.
+		\item The precondition ensures \(hi - lo \ge 0\).
+		\item Each recursive call strictly decreases the metric:
+		      \[hi - (lo + 1) = (hi - lo) - 1.\]
+		\item At \texttt{lo == hi}, the metric is zero and recursion stops.
+	\end{itemize}
 \end{frame}
 
 \end{document}
