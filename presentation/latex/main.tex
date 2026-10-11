@@ -10,6 +10,16 @@
 \definecolor{themeExample}{HTML}{179299}
 \definecolor{themeTrack}{HTML}{CCD0DA}
 
+\let\originaltexttt\texttt
+\renewcommand{\texttt}[1]{%
+  \begingroup
+  \setlength{\fboxsep}{2pt}%
+  \colorbox{themeTrack!65}{%
+    \textcolor{themeText}{\originaltexttt{#1}}%
+  }%
+  \endgroup
+}
+
 \setbeamercolor{normal text}{fg=themeText,bg=white}
 \setbeamercolor{frametitle}{fg=white,bg=themeAccent}
 \setbeamercolor{alerted text}{fg=themeAlert}
@@ -426,7 +436,7 @@ good = grade 85
           -> hi:{Int | hi >= lo}
           -> [Rng lo hi] @-}
 range :: Int -> Int -> [Int]
-range lo hi = [lo..hi]
+(*@\codeerror{range lo hi = [lo..hi]}@*)
 
 -- [1..5] -> [1, 2, 3, 4, 5]
 -- [5..1] -> []
@@ -441,7 +451,7 @@ range lo hi = [lo..hi]
           -> hi:{Int | lo <= hi}
           -> [Rng lo hi] @-}
 range :: Int -> Int -> [Int]
-range lo hi = [lo..hi]
+(*@\codeerror{range lo hi = [lo..hi]}@*)
 
 good = range 1 5
 (*@\codeerror{bad  = range 5 1}@*)
@@ -453,6 +463,26 @@ good = range 1 5
 		\item \textbf{UNSAFE:} range 5 1 violates
 		      the precondition \(5 \nleq 1\).
 	\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{LiquidHaskell Verification Limitations}
+	\begin{itemize}
+		\item Haskell's \texttt{[lo..hi]} is alias for \texttt{enumFromTo lo hi}.
+		\item LiquidHaskell relies on refinement specifications to reason about library functions.
+		\item Without a sufficiently precise specification for \texttt{enumFromTo}, it cannot prove that every element satisfies \texttt{Rng lo hi}.
+	\end{itemize}
+
+	\vspace{0.3cm}
+
+	\begin{lstlisting}[language=Haskell]
+-- Cannot verify the postcondition
+(*@\codeerror{range lo hi = [lo..hi]}@*)
+\end{lstlisting}
+	\begin{alertblock}{Important}
+		\vspace{0.1em}
+		UNSAFE does not necessarily mean the code is wrong.
+		It can mean LiquidHaskell cannot prove its correctness.
+	\end{alertblock}
 \end{frame}
 
 \end{document}
