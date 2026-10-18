@@ -544,4 +544,164 @@ range lo hi
 	\end{itemize}
 \end{frame}
 
+\begin{frame}[fragile]{LiquidHaskell Measures}
+	So far, the specifications have been limited to comparisons and arithmetic operations on \textbf{primitive} values. \textbf{Measures} describe \textbf{inductive properties} of algebraic data types.
+
+	\begin{lstlisting}[language=Haskell]
+{-@ measure myLen @-}
+myLen :: [a] -> Int
+myLen []     = 0
+myLen (x:xs) = 1 + myLen xs
+\end{lstlisting}
+
+	\begin{itemize}
+		\item One equation for each data constructor: \texttt{[]} and \texttt{(:)}.
+		\item Each right-hand side must belong to the restricted refinement logic.
+		\item \texttt{measure myLen} makes this Haskell function available in refinements; it must obey the measure restrictions.
+	\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{LiquidHaskell Measures: Minimum Length}
+	\begin{lstlisting}[language=Haskell]
+{-@ type MinLength a N = {v:[a] | myLen v >= N} @-}
+
+{-@ good :: MinLength Int 3 @-}
+good :: [Int]
+good = [1, 2, 3, 4]
+
+{-@ bad :: MinLength Int 3 @-}
+bad :: [Int]
+(*@\codeerror{bad = [1, 2]}@*)
+\end{lstlisting}
+
+	\begin{itemize}
+		\item \texttt{a} is the element type; \texttt{N} is the minimum length.
+		\item \textbf{SAFE:} \texttt{good} has length 4, and \(4 \ge 3\).
+		\item \textbf{UNSAFE:} \texttt{bad} has length 2, and \(2 < 3\).
+	\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{LiquidHaskell Measures: Constructor Refinements}
+	Each list constructor gives LiquidHaskell a \textbf{length fact}:
+
+	\begin{lstlisting}[language=Haskell]
+[]  :: {v:[a] | myLen v == 0}
+
+(:) :: x:a -> xs:[a]
+    -> {v:[a] | myLen v == 1 + myLen xs}
+\end{lstlisting}
+
+	\begin{itemize}
+		\item \texttt{[]}: the length is zero.
+		\item \texttt{x:xs}: the length is one more than \texttt{xs}.
+		\item These facts are available when building or pattern matching on lists.
+	\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{LiquidHaskell Measures: Using a Constructor Fact}
+	Adding an element increases the minimum length.
+
+	\begin{lstlisting}[language=Haskell]
+{-@ prepend :: a -> MinLength a 2 -> MinLength a 3 @-}
+prepend :: a -> [a] -> [a]
+prepend x xs = x : xs
+
+good = prepend 1 [2, 3]
+(*@\codeerror{bad = prepend 1 [2]}@*)
+\end{lstlisting}
+
+	\begin{itemize}
+		\item Input contract: \(\mathit{myLen}\;xs \ge 2\).
+		\item Constructor fact: \(\mathit{myLen}\;(x:xs) = 1 + \mathit{myLen}\;xs \ge 3\).
+	\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{LiquidHaskell Measures: Function Contracts}
+	Measures relate the \textbf{structure of inputs and outputs}.
+
+	\begin{lstlisting}[language=Haskell]
+-- Appending adds the lengths
+{-@ append :: xs:[a] -> ys:[a]
+           -> {v:[a] | myLen v == myLen xs + myLen ys} @-}
+
+-- Mapping preserves the length
+{-@ map :: (a -> b) -> xs:[a]
+        -> {v:[b] | myLen v == myLen xs} @-}
+
+-- Filtering cannot increase the length
+{-@ filter :: (a -> Bool) -> xs:[a]
+           -> {v:[a] | myLen v <= myLen xs} @-}
+\end{lstlisting}
+
+\end{frame}
+
+\begin{frame}[fragile]{LiquidHaskell Refined Data Types}
+	Every value of a data type may need to satisfy an \textbf{invariant}.
+
+	\begin{lstlisting}[language=Haskell]
+data CSV a = CSV { cols :: [String], rows :: [[a]] }
+\end{lstlisting}
+
+	\begin{itemize}
+		\item \texttt{cols}: the column names in the header.
+		\item \texttt{rows}: the table's rows, containing values of type \texttt{a}.
+		\item Haskell allows rows of different lengths.
+	\end{itemize}
+
+	\begin{exampleblock}{CSV invariant}
+		\vspace{0.1em}
+		Every row must have exactly as many entries as the header has column names.
+	\end{exampleblock}
+\end{frame}
+
+\begin{frame}[fragile]{LiquidHaskell Refined Data Types: Definition}
+	A field's refinement can refer to an \textbf{earlier field}.
+
+	\begin{lstlisting}[language=Haskell]
+{-@ type ListL a X = {v:[a] | len v == len X} @-}
+
+{-@ data CSV a = CSV { cols :: [String]
+                     , rows :: [ListL a cols] } @-}
+\end{lstlisting}
+
+	\begin{itemize}
+		\item \texttt{ListL a X}: a list with the same length as \texttt{X}.
+		\item \texttt{rows}: a list of rows, each matching the length of \texttt{cols}.
+		\item \texttt{len} is LiquidHaskell's built-in list length measure.
+	\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{LiquidHaskell Refined Data Types: Verification}
+	\medskip
+	\begin{lstlisting}[language=Haskell]
+good = CSV ["Month", "Days"]
+              [ ["Jan", "31"]
+              , ["Feb", "28"]
+              , ["Mar", "31"] ]
+
+bad =  CSV ["Month", "Days"]
+             [ ["Jan", "31"]
+             , ["Feb", "28"]
+             , (*@\codeerror{["Mar"]}@*) ]
+\end{lstlisting}
+
+\end{frame}
+
+\begin{frame}[fragile]{LiquidHaskell Refined Data Types: Global Invariants}
+	Like measures, refined data definitions strengthen \textbf{constructor types}.
+
+	\begin{lstlisting}[language=Haskell]
+-- Refined constructor type
+CSV :: cols:[String] -> rows:[ListL a cols] -> CSV a
+\end{lstlisting}
+
+	\begin{itemize}
+		\item Construction checks every row against the header length.
+		\item Pattern matching makes this relationship available to the checker.
+		\item No extra annotation is needed on individual CSV values.
+	\end{itemize}
+
+	\textbf{Global guarantee:} LiquidHaskell rejects CSV-typed expressions that violate this invariant.
+\end{frame}
+
 \end{document}
