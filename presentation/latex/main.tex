@@ -704,4 +704,90 @@ CSV :: cols:[String] -> rows:[ListL a cols] -> CSV a
 	\textbf{Global guarantee:} LiquidHaskell rejects CSV-typed expressions that violate this invariant.
 \end{frame}
 
+\begin{frame}[fragile]{LiquidHaskell Refined Type Classes}
+	A \textbf{type class} defines a shared interface for different types.
+
+	\begin{lstlisting}[language=Haskell]
+class Reward a where
+  reward :: a -> Int -> Int
+\end{lstlisting}
+
+	\begin{itemize}
+		\item \texttt{a}: the type that determines the reward policy.
+		\item \texttt{reward}: takes a policy value and the current points.
+		\item Each instance provides its own implementation.
+	\end{itemize}
+
+	\textbf{Shared rule:} points must be non-negative and cannot decrease.
+\end{frame}
+
+\begin{frame}[fragile]{LiquidHaskell Refined Type Classes: Contract}
+	Refinements specify a \textbf{shared contract} for the class method.
+
+	\begin{lstlisting}[language=Haskell]
+{-@ class Reward a where
+      reward :: a -> points:{Int | points >= 0}
+             -> {v:Int | v >= points}
+@-}
+\end{lstlisting}
+
+	\begin{itemize}
+		\item \textbf{Precondition:} input points must be non-negative.
+		\item \textbf{Postcondition:} the result cannot be smaller than the input.
+		\item Every instance must satisfy the \textbf{same contract}.
+	\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{LiquidHaskell Refined Type Classes: Bool Instance}
+	A Boolean flag decides whether to add a bonus.
+
+	\begin{lstlisting}[language=Haskell]
+instance Reward Bool where
+  reward bonus points
+    | bonus     = points + 10
+    | otherwise = points
+\end{lstlisting}
+
+	\begin{itemize}
+		\item \texttt{True}: add 10 points.
+		\item \texttt{False}: keep the original points.
+		\item Both branches satisfy \(v \ge points\).
+	\end{itemize}
+
+	LiquidHaskell checks the instance against the class contract.
+\end{frame}
+
+\begin{frame}[fragile]{LiquidHaskell Refined Type Classes: Verification}
+	\begin{lstlisting}[language=Haskell]
+good :: Int
+good = reward True 20
+
+bad :: Int
+(*@\codeerror{bad = reward True (-1)}@*)
+\end{lstlisting}
+
+	\begin{itemize}
+		\item \textbf{SAFE:} \texttt{good} passes non-negative points and returns 30.
+		\item \textbf{UNSAFE:} \texttt{bad} violates the precondition \(points \ge 0\).
+	\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{LiquidHaskell Refined Type Classes: Invalid Instance}
+	What if we replace the bonus with a deduction?
+
+	\begin{lstlisting}[language=Haskell]
+-- alternative implementation:
+instance Reward Bool where
+  reward bonus points
+    | bonus     = (*@\codeerror{points - 10}@*)
+    | otherwise = points
+\end{lstlisting}
+
+	\begin{itemize}
+		\item The first branch violates \(v \ge points\).
+		\item Callers must meet the precondition.
+		\item Instances must prove the postcondition.
+	\end{itemize}
+\end{frame}
+
 \end{document}
