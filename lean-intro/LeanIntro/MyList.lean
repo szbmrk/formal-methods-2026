@@ -50,8 +50,22 @@ theorem rev'.nil {α : Type} : rev' ([] : List α) = [] := rfl
 theorem rev'.cons {α : Type} (x : α) (s : List α) :
   rev' (x :: s) = cat (rev' s) [x] := rfl
 
--- theorem CatRev {α : Type} (s t : List α) :
---   cat (rev' s) (rev' t) = rev' (cat s t) := by
---   induction s with
---   | nil => calc
---     cat (rev' t) []
+theorem CatRev {α : Type} (s t : List α) :
+  cat (rev' t) (rev' s) = rev' (cat s t) := by
+  induction s with
+  | nil => calc
+      cat (rev' t) (rev' [])
+        = cat (rev' t) [] := at [1, 2] use rev'.nil
+      _ = rev' t          := at [1] use CatNil (rev' t)
+      _ = rev' (cat [] t) := at [2, 1] use cat.nil t
+  | cons x s ih => calc
+      cat (rev' t) (rev' (x :: s))
+        = cat (rev' t) (cat (rev' s) [x]) := at [1, 2] use rev'.cons x s
+      _ = cat (cat (rev' t) (rev' s)) [x] := at [1] use CatAssoc (rev' t) (rev' s) [x]
+      _ = cat (rev' (cat s t)) [x]        := at [1, 1] use ih
+      _ = rev' (x :: cat s t)             := at [2] use rev'.cons x (cat s t)
+      _ = rev' (cat (x :: s) t)           := at [2, 1] use cat.cons x s t
+
+
+
+
