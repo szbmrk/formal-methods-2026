@@ -67,5 +67,20 @@ theorem CatRev {α : Type} (s t : List α) :
       _ = rev' (cat (x :: s) t)           := at [2, 1] use cat.cons x s t
 
 
-
-
+theorem RevInv {α : Type} (s : List α) :
+  rev' (rev' s) = s := by
+  induction s with
+  | nil => calc
+    rev' (rev' [])
+      = rev' []   := at [1, 1] use rev'.nil
+    _ = []        := at [1] use rev'.nil
+  | cons x s ih => calc
+    rev' (rev' (x :: s))
+      = rev' (cat (rev' s) [x])                 := at [1, 1] use rev'.cons x s
+    _ = cat (rev' [x]) (rev' (rev' s))          := at [2] use CatRev (rev' s) [x]
+    _ = cat (cat (rev' []) [x]) (rev' (rev' s)) := at [1, 1] use rev'.cons x [] -- 4
+    _ = cat (cat [] [x]) (rev' (rev' s))        := at [1, 1, 1] use rev'.nil -- 3
+    _ = cat [x] (rev' (rev' s))                 := at [1, 1] use cat.nil [x] -- 1
+    _ = x :: cat [] (rev' (rev' s))             := at [1] use cat.cons x [] (rev' (rev' (s))) -- 2
+    _ = x :: rev' (rev' s)                      := at [1, 2] use cat.nil (rev' (rev' (s)))    -- 1
+    _ = x :: s                                  := at [1, 2] use ih 
