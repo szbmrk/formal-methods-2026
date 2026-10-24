@@ -64,6 +64,8 @@
 
 \maketitle
 
+\section{Haskell Background}
+
 \begin{frame}{Haskell's Type System}
 
 	Haskell is a \textbf{statically typed} language.
@@ -177,6 +179,8 @@ sqrtRoot x
   | otherwise = error "x must be greater than 0"
 \end{lstlisting}
 \end{frame}
+
+\section{Refinement Types and LiquidHaskell}
 
 \begin{frame}{LiquidHaskell}
 	Many of these properties and relationships can be verified using a combination of \textbf{Refinement Types} and \textbf{external SMT solvers}.
@@ -424,6 +428,8 @@ good = grade 85
 \end{lstlisting}
 \end{frame}
 
+\section{Contracts and Verification}
+
 \begin{frame}[fragile]{LiquidHaskell Function Contracts}
 	\begin{itemize}
 		\item \textbf{Precondition:} Constraint on the function's inputs.
@@ -596,6 +602,8 @@ range lo hi
 		\item At \texttt{lo == hi}, the metric is zero and recursion stops.
 	\end{itemize}
 \end{frame}
+
+\section{Refining Data and Interfaces}
 
 \begin{frame}[fragile]{LiquidHaskell Measures}
 	So far, the specifications have been limited to comparisons and arithmetic operations on \textbf{primitive} values. \textbf{Measures} describe \textbf{inductive properties} of algebraic data types.
@@ -842,6 +850,8 @@ instance Reward Bool where
 		\item Instances must prove the postcondition.
 	\end{itemize}
 \end{frame}
+
+\section{Totality and Advanced Termination}
 
 \begin{frame}[fragile]{LiquidHaskell Totality: Missing Patterns}
 	A function can pass Haskell's type checker but still fail on some inputs.
