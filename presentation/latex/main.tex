@@ -790,4 +790,55 @@ instance Reward Bool where
 	\end{itemize}
 \end{frame}
 
+\begin{frame}[fragile]{LiquidHaskell Totality: Missing Patterns}
+	A function can pass Haskell's type checker but still fail on some inputs.
+
+	\begin{lstlisting}[language=Haskell]
+head :: [a] -> a
+head (x:_) = x
+
+good = head [1, 2, 3]
+(*@\codeerror{bad = head []}@*)
+\end{lstlisting}
+
+	\begin{itemize}
+		\item The definition only handles non-empty lists.
+		\item An empty list causes a \textbf{pattern-match exception}.
+		\item Totality checking must prove that this failure cannot occur.
+	\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{LiquidHaskell Totality: Core Translation}
+	GHC makes the missing case explicit in Core:
+
+	\begin{lstlisting}[language=Haskell]
+head d = case d of
+  x:xs -> x
+  []   -> patError "head"
+\end{lstlisting}
+
+	\begin{itemize}
+		\item Both list constructors now have a branch.
+		\item \texttt{patError} throws an exception describing the failed match.
+		\item To rule out this exception, prove that the error branch is \textbf{unreachable}.
+	\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{LiquidHaskell Totality: Making Head Safe}
+	Restrict the input to \textbf{non-empty lists}.
+
+	\begin{lstlisting}[language=Haskell]
+{-@ type NonEmpty a = {v:[a] | len v > 0} @-}
+{-@ head :: NonEmpty a -> a @-}
+head :: [a] -> a
+head (x:_) = x
+\end{lstlisting}
+
+	\begin{itemize}
+		\item The input contract gives \(\mathit{len}\;v > 0\).
+		\item The empty branch gives \(\mathit{len}\;v = 0\): a contradiction.
+		\item The error call is unreachable.
+	\end{itemize}
+\end{frame}
+
 \end{document}
