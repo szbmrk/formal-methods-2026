@@ -949,4 +949,60 @@ jobs b j
 	\end{itemize}
 \end{frame}
 
+\section{Memory Safety}
+
+\begin{frame}{LiquidHaskell Memory Safety}
+	Haskell's high-level libraries can use \textbf{unsafe memory operations} internally for speed.
+
+	\begin{itemize}
+		\item \textbf{ByteString:} stores bytes and uses pointer arithmetic.
+		\item Refinements track buffer sizes and valid positions.
+	\end{itemize}
+
+	\begin{exampleblock}{Main idea}
+		\vspace{0.1em}
+		Before reading or writing memory, prove that there is enough space.
+	\end{exampleblock}
+\end{frame}
+
+\begin{frame}[fragile]{LiquidHaskell ByteString: Staying Inside the Buffer}
+	A ByteString is a \textbf{slice}: a pointer, a starting offset, and a length.
+
+	\begin{lstlisting}[language=Haskell]
+measure fplen :: ForeignPtr a -> Int
+data ByteString = PS
+ { pay :: ForeignPtr Word8
+ , off :: {v:Nat | v       <= (fplen pay)}
+ , len :: {v:Nat | off + v <= (fplen pay)} }
+\end{lstlisting}
+
+	\begin{itemize}
+		\item \texttt{fplen pay}: the buffer size in bytes.
+		\item \texttt{off + len} cannot exceed that size.
+	\end{itemize}
+
+	\textbf{Paper notation:} refinements are shown directly, without comment wrappers.
+\end{frame}
+
+\begin{frame}[fragile]{LiquidHaskell ByteString: Pointer Contracts}
+	A pointer with room for \textbf{at least N bytes}:
+
+	\begin{lstlisting}[language=Haskell]
+type PtrN a N = {v:Ptr a | N <= (plen v)}
+\end{lstlisting}
+
+	\begin{itemize}
+		\item \texttt{plen v}: the available buffer size.
+		\item Copying N bytes requires that much space in both buffers.
+		\item LiquidHaskell checks these requirements at the call site.
+	\end{itemize}
+
+	\begin{alertblock}{Trusted boundary}
+		\vspace{0.1em}
+		Contracts for external C functions are assumed, their C code is not verified.
+	\end{alertblock}
+
+	These contracts ensure that copying stays inside both buffers.
+\end{frame}
+
 \end{document}
