@@ -33,6 +33,7 @@
 \usepackage[english]{babel}
 
 \usepackage{listings}
+\usepackage{tikz}
 
 \lstset {
      basicstyle=\small\ttfamily,
@@ -1003,6 +1004,174 @@ type PtrN a N = {v:Ptr a | N <= (plen v)}
 	\end{alertblock}
 
 	These contracts ensure that copying stays inside both buffers.
+\end{frame}
+
+\section{Functional Correctness Invariants}
+
+\begin{frame}[fragile]{LiquidHaskell Functional Correctness}
+	Beyond avoiding errors, refinements can express \textbf{application-specific correctness rules}.
+
+	\medskip
+	The paper's example: \textbf{red-black trees}, a balanced binary search tree structure.
+
+	\begin{lstlisting}[language=Haskell]
+data Col    = R | B
+data Tree a = Leaf
+            | Node Col a (Tree a) (Tree a)
+\end{lstlisting}
+
+	\begin{itemize}
+		\item \texttt{Col}: the color; \texttt{a}: the key; followed by the left and right subtrees.
+	\end{itemize}
+\end{frame}
+
+\begin{frame}{LiquidHaskell Red-Black Trees: Three Invariants}
+	A tree is only a valid Red-Black tree if:
+
+	\begin{itemize}
+		\item \textbf{Order:} all keys in the left subtree are smaller than the node's keyand all keys in the right subtree are larger.
+		\item \textbf{Color:} a red node has only black children. Empty leaves count as black.
+		\item \textbf{Height:} from any node, every path to a leaf contains the same number of black nodes.
+	\end{itemize}
+
+	\begin{exampleblock}{Main idea}
+		\vspace{0.1em}
+		Describe these properties separately, then combine them without changing the underlying tree structure.
+	\end{exampleblock}
+\end{frame}
+
+\begin{frame}{LiquidHaskell Red-Black Trees: Valid and Invalid}
+	\tikzset{
+		rbNode/.style={circle, text=white, minimum size=0.65cm, inner sep=0pt},
+		rbBlack/.style={rbNode, fill=themeText},
+		rbRed/.style={rbNode, fill=themeAlert},
+		rbLeaf/.style={rectangle, fill=themeText, minimum size=0.25cm, inner sep=0pt}
+	}
+
+	\begin{columns}[T]
+		\begin{column}{0.5\textwidth}
+			\centering
+			\textcolor{themeExample}{\textbf{Valid}}
+
+			\medskip
+			\begin{tikzpicture}[
+					level 1/.style={level distance=0.95cm, sibling distance=1.8cm},
+					level 2/.style={level distance=0.65cm, sibling distance=0.7cm},
+					edge from parent/.style={draw=themeText}
+				]
+				\node[rbBlack] {10}
+				child {node[rbRed] {5}
+						child {node[rbLeaf] {}}
+						child {node[rbLeaf] {}}}
+				child {node[rbRed] {15}
+						child {node[rbLeaf] {}}
+						child {node[rbLeaf] {}}};
+			\end{tikzpicture}
+
+			\medskip
+			\(5 < 10 < 15\).
+
+			Color and height are valid too.
+		\end{column}
+
+		\begin{column}{0.5\textwidth}
+			\centering
+			\textcolor{themeAlert}{\textbf{Invalid}}
+
+			\medskip
+			\begin{tikzpicture}[
+					level 1/.style={level distance=0.95cm, sibling distance=1.8cm},
+					level 2/.style={level distance=0.65cm, sibling distance=0.7cm},
+					edge from parent/.style={draw=themeText}
+				]
+				\node[rbBlack] {10}
+				child {node[rbRed] {12}
+						child {node[rbLeaf] {}}
+						child {node[rbLeaf] {}}}
+				child {node[rbRed] {15}
+						child {node[rbLeaf] {}}
+						child {node[rbLeaf] {}}};
+			\end{tikzpicture}
+
+			\medskip
+			\textbf{Order fails:} \(12 > 10\).
+		\end{column}
+	\end{columns}
+
+	\vspace{2em}
+	\centering
+	\emph{Black squares represent empty leaves.}
+\end{frame}
+
+\begin{frame}[fragile]{LiquidHaskell Red-Black Trees: Checking Color}
+	\begin{lstlisting}[language=Haskell]
+measure isB :: Tree a -> Prop
+isB (Node c x l r) = c == B
+isB (Leaf) = true
+
+measure isRB :: Tree a -> Prop
+isRB (Leaf) = true
+isRB (Node c x l r) = isRB l && isRB r &&
+                    c == R => (isB l && isB r)
+\end{lstlisting}
+
+	\begin{itemize}
+		\item \texttt{isB}: the root is black; empty leaves count as black.
+		\item \texttt{isRB}: red nodes have black children, recursively.
+	\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{LiquidHaskell Red-Black Trees: Checking Height}
+	\begin{lstlisting}[language=Haskell]
+measure bh :: Tree a -> Int
+bh (Leaf) = 0
+bh (Node c x l r) = bh l + if c == R then 0 else 1
+
+measure isBal :: Tree a -> Prop
+isBal (Leaf) = true
+isBal (Node c x l r) = bh l == bh r && isBal l && isBal r
+\end{lstlisting}
+
+	\begin{itemize}
+		\item \texttt{bh}: count black nodes along the leftmost path.
+		\item \texttt{isBal}: require equal black heights, recursively.
+	\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{LiquidHaskell Red-Black Trees: Checking Order}
+	\begin{lstlisting}[language=Haskell]
+data Tree a <l :: a -> a -> Prop,
+             r :: a -> a -> Prop>
+  = Leaf
+  | Node { c   :: Col
+         , key :: a
+         , lt  :: Tree <l, r> a <l key>
+         , rt  :: Tree <l, r> a <r key> }
+type OTree a
+  = Tree <{\k v -> v < k},   -- l: left rule
+          {\k v -> v > k}> a -- r: right rule
+\end{lstlisting}
+
+	\begin{itemize}
+		\item \texttt{l} and \texttt{r}: rules relating keys to subtree values.
+		\item \texttt{OTree}: left keys \(v < k\); right keys \(v > k\).
+	\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{LiquidHaskell Red-Black Trees: Combining the Rules}
+	Combining ordering, color, and black-height balance:
+
+	\begin{lstlisting}[language=Haskell]
+type RBT a = {v:OTree a | isRB v && isBal v}
+\end{lstlisting}
+
+	\begin{itemize}
+		\item \texttt{OTree}: keys follow binary-search ordering.
+		\item \texttt{isRB}: red nodes have black children.
+		\item \texttt{isBal}: all paths have equal black heights.
+	\end{itemize}
+
+	With these invariants and suitable function signatures, LiquidHaskell verifies the library's \textbf{insertion, deletion, and rebalancing} procedures.
 \end{frame}
 
 \end{document}
