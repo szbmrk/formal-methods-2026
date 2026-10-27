@@ -35,6 +35,7 @@
 \usepackage{listings}
 \usepackage{tikz}
 \usetikzlibrary{decorations.pathreplacing}
+\usepackage{booktabs}
 
 \lstset {
      basicstyle=\small\ttfamily,
@@ -1365,6 +1366,67 @@ modify :: x:{v:Maybe (Stack a) | isNothing v}
 	\begin{exampleblock}{Takeaway}
 		\vspace{0.1em}
 		Real code sometimes needs \textbf{small rewrites} to verify.
+	\end{exampleblock}
+\end{frame}
+
+\section{Evaluation}
+
+\begin{frame}{LiquidHaskell Evaluation: Benchmarks}
+	\footnotesize
+	\centering
+	\begin{tabular}{@{}ll@{}}
+		\toprule
+		\textbf{Library}    & \textbf{Verified properties}                      \\
+		\midrule
+		GHC.List, Data.List & size properties of list operations                \\
+		Data.Set.Splay      & termination, well-ordered splay trees             \\
+		Data.Map.Base       & termination, binary-search ordered trees          \\
+		HsColour            & totality of all functions                         \\
+		XMonad              & window uniqueness, some QuickCheck properties     \\
+		ByteString          & termination, memory safety, correctness           \\
+		Text                & pointer safety, correctness (\alert{found a bug}) \\
+		Vector-Algorithms   & safe vector accessing, indexing and slicing       \\
+		\bottomrule
+	\end{tabular}
+\end{frame}
+
+\begin{frame}{LiquidHaskell Evaluation: Results}
+	\centering
+	\resizebox{\textwidth}{!}{%
+		\begin{tabular}{@{}lrrrrrrr@{}}
+			\toprule
+			\textbf{Module}   & \textbf{LOC} & \textbf{Mod} & \textbf{Fun} & \textbf{Specs} & \textbf{Annot} & \textbf{Qualif} & \textbf{Time (s)} \\
+			\midrule
+			GHC.List          & 309          & 1            & 66           & 29 / 38        & 6 / 6          & 0 / 0           & 15                \\
+			Data.List         & 504          & 1            & 97           & 15 / 26        & 6 / 6          & 3 / 3           & 11                \\
+			Data.Map.Base     & 1396         & 1            & 180          & 125 / 173      & 13 / 13        & 0 / 0           & 174               \\
+			Data.Set.Splay    & 149          & 1            & 35           & 27 / 37        & 5 / 5          & 0 / 0           & 27                \\
+			HsColour          & 1047         & 16           & 234          & 19 / 40        & 5 / 5          & 1 / 1           & 196               \\
+			XMonad.StackSet   & 256          & 1            & 106          & 74 / 213       & 3 / 3          & 4 / 4           & 27                \\
+			ByteString        & 3505         & 8            & 569          & 307 / 465      & 55 / 55        & 47 / 124        & 294               \\
+			Text              & 3128         & 17           & 493          & 305 / 717      & 52 / 54        & 49 / 97         & 499               \\
+			Vector-Algorithms & 1218         & 10           & 99           & 76 / 266       & 9 / 9          & 13 / 13         & 89                \\
+			\midrule
+			\textbf{Total}    & 11512        & 56           & 1879         & 977 / 1975     & 154 / 156      & 117 / 242       & 1336              \\
+			\bottomrule
+		\end{tabular}%
+	}
+
+	\raggedright
+	\footnotesize
+	\medskip
+	\textbf{Specs, Annot, Qualif:} count / lines of type specifications, other annotations (invariants, termination hints) and qualifiers.
+\end{frame}
+
+\begin{frame}{LiquidHaskell Evaluation: What the Numbers Show}
+	\begin{itemize}
+		\item \textbf{11,512} lines of code in 56 modules, checked with \textbf{1,975} lines of specifications.
+		\item Hints (annotations and qualifiers) add only \textbf{3.5\%} of the code size.
+	\end{itemize}
+
+	\begin{exampleblock}{Performance}
+		\vspace{0.1em}
+		The full suite takes about \textbf{22 minutes}, but checking a handful of functions in isolation is fast enough for \textbf{interactive use}.
 	\end{exampleblock}
 \end{frame}
 
