@@ -1430,4 +1430,38 @@ modify :: x:{v:Maybe (Stack a) | isNothing v}
 	\end{exampleblock}
 \end{frame}
 
+\begin{frame}{LiquidHaskell Limitations}
+	The case studies also showed limitations of LiquidHaskell.
+
+	\begin{itemize}
+		\item Ghost parameters
+		\item Fixed-width integers and floating-point numbers
+		\item Higher-order functions
+		\item Functions as data
+		\item Lazy binders
+		\item Assumes
+		\item Error messages
+	\end{itemize}
+
+	\begin{exampleblock}{Workaround}
+		\vspace{0.1em}
+		In most cases, the code could be \textbf{altered slightly} to make verification possible.
+	\end{exampleblock}
+\end{frame}
+
+\begin{frame}{LiquidHaskell Limitations: Ghost Parameters and Numbers}
+	\textbf{Ghost parameters}
+	\begin{itemize}
+		\item Some values are not needed for the computation, only for the proof.
+		\item They must still be passed as extra arguments.
+	\end{itemize}
+
+	\medskip
+	\textbf{Fixed-width integers and floating-point numbers}
+	\begin{itemize}
+		\item Numbers are modelled with linear arithmetic and real numbers.
+		\item Some precision is lost, e.g.\ bitwise operations can only be approximated.
+	\end{itemize}
+\end{frame}
+
 \end{document}
