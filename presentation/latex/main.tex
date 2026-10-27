@@ -34,6 +34,7 @@
 
 \usepackage{listings}
 \usepackage{tikz}
+\usetikzlibrary{decorations.pathreplacing}
 
 \lstset {
      basicstyle=\small\ttfamily,
@@ -1172,6 +1173,199 @@ type RBT a = {v:OTree a | isRB v && isBal v}
 	\end{itemize}
 
 	With these invariants and suitable function signatures, LiquidHaskell verifies the library's \textbf{insertion, deletion, and rebalancing} procedures.
+\end{frame}
+
+\begin{frame}{LiquidHaskell Stack Sets in XMonad}
+	\textbf{xmonad} is a dynamically tiling X11 window manager, written and configured in Haskell.
+
+	\begin{itemize}
+		\item The managed windows are organized into a \textbf{hierarchy of types}.
+		\item Every level stores windows, together with layout and screen data.
+	\end{itemize}
+
+	\begin{exampleblock}{Key invariant}
+		\vspace{0.1em}
+		Each window appears \textbf{at most once}: it is never duplicated across stacks or workspaces.
+	\end{exampleblock}
+\end{frame}
+
+\begin{frame}[fragile]{LiquidHaskell XMonad: The Stack Zipper}
+	At the lowest level, windows are stored in a \textbf{zipper}:
+
+	\begin{lstlisting}[language=Haskell]
+data Stack a = Stack { focus :: a
+                     , up    :: [a]
+                     , down  :: [a] }
+\end{lstlisting}
+
+	\begin{center}
+		\begin{tikzpicture}[
+				win/.style={rectangle, draw=themeText, minimum width=0.9cm, minimum height=0.6cm},
+				focused/.style={win, fill=themeAccent, text=white}
+			]
+			\node[win]     (w1) at (0, 0)   {w1};
+			\node[win]     (w2) at (1.1, 0) {w2};
+			\node[focused] (w3) at (2.2, 0) {w3};
+			\node[win]     (w4) at (3.3, 0) {w4};
+			\node[win]     (w5) at (4.4, 0) {w5};
+			\draw[decorate, decoration={brace, amplitude=5pt, mirror}, draw=themeText]
+			([yshift=-3pt]w1.south west) -- node[below=5pt] {\texttt{up}} ([yshift=-3pt]w2.south east);
+			\node[below=8pt] at (w3.south) {\texttt{focus}};
+			\draw[decorate, decoration={brace, amplitude=5pt, mirror}, draw=themeText]
+			([yshift=-3pt]w4.south west) -- node[below=5pt] {\texttt{down}} ([yshift=-3pt]w5.south east);
+		\end{tikzpicture}
+	\end{center}
+
+	\begin{itemize}
+		\item \texttt{focus}: the current window.
+		\item \texttt{up} and \texttt{down}: the windows before and after it.
+	\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{LiquidHaskell XMonad: Type Hierarchy}
+	\medskip
+	\begin{lstlisting}[language=Haskell]
+data Workspace i l a = Workspace
+  { tag :: i, layout :: l, stack :: Maybe (Stack a) }
+
+data Screen i l a sid sd = Screen
+  { workspace :: Workspace i l a
+  , screen :: sid
+  , screenDetail :: sd }
+
+data StackSet i l a sid sd = StackSet
+  { cur :: Screen i l a sid sd       -- focused screen
+  , vis :: [Screen i l a sid sd]     -- other visible screens
+  , hid :: [Workspace i l a]         -- hidden workspaces
+  , flt :: M.Map a RationalRect }    -- floating windows
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]{LiquidHaskell XMonad: Unique Lists}
+	A measure collects the elements of a list into a \textbf{set}:
+
+	\begin{lstlisting}[language=Haskell]
+measure elts :: [a] -> Set a
+elts ([])   = emp
+elts (x:xs) = cup (sng x) (elts xs)
+
+measure isUniq :: [a] -> Prop
+isUniq ([])   = true
+isUniq (x:xs) = notIn x xs && isUniq xs
+
+predicate notIn X S = not (mem X (elts S))
+\end{lstlisting}
+
+	\begin{itemize}
+		\item \texttt{emp}, \texttt{sng}, \texttt{cup}: empty set, singleton, union (\(\emptyset\), \(\{x\}\), \(\cup\)).
+		\item \texttt{mem}: set membership (\(\in\)).
+		\item \texttt{isUniq}: no element occurs in the rest of the list.
+	\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{LiquidHaskell XMonad: Unique Stacks}
+	\begin{lstlisting}[language=Haskell]
+data Stack a = Stack
+  { focus :: a
+  , up    :: {v:[a] | Uniq1 v focus}
+  , down  :: {v:[a] | Uniq2 v focus up} }
+
+predicate Uniq1 V X   = isUniq V && notIn X V
+predicate Uniq2 V X Y = Uniq1 V X && disjoint Y V
+predicate disjoint X Y = cap (elts X) (elts Y) = emp
+\end{lstlisting}
+
+	\begin{itemize}
+		\item \texttt{cap}: set intersection (\(\cap\)); \texttt{disjoint} means no shared elements.
+		\item \texttt{up}: a unique list that does not contain \texttt{focus}.
+		\item \texttt{down}: the same, and also disjoint from \texttt{up}.
+	\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{LiquidHaskell XMonad: Unique Stack Sets}
+	\texttt{elts} and \texttt{isUniq} are lifted to \texttt{Stack}, \texttt{Workspace} and \texttt{Screen}.
+
+	\begin{lstlisting}[language=Haskell]
+type UniqStackSet i l a sid sd
+  = {v:StackSet i l a sid sd | NoDups v}
+
+predicate NoDups V = disjoint3 (hid V) (cur V) (vis V)
+                  && isUniq (vis V) && isUniq (hid V)
+
+predicate disjoint3 X Y Z
+  = disjoint X Y && disjoint Y Z && disjoint X Z
+\end{lstlisting}
+
+	\begin{itemize}
+		\item Record selectors (\texttt{cur}, \texttt{vis}, \texttt{hid}) automatically become measures.
+		\item No window is shared between the current, visible and hidden parts.
+	\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{LiquidHaskell XMonad: Strengthening Library Functions}
+	xmonad often concatenates \texttt{up s ++ down s}. Proving the result unique needs a stronger type for \texttt{(++)}:
+
+	\begin{lstlisting}[language=Haskell]
+-- assumed: two unique, disjoint lists give a unique list
+(++) :: xs:{[a] | isUniq xs}
+     -> ys:{[a] | isUniq ys && disjoint xs ys}
+     -> {v:[a] | isUniq v}
+
+(*@\codeerror{"StackSet" ++ "error"}@*)  -- violates the precondition
+\end{lstlisting}
+
+	\begin{itemize}
+		\item Not every call concatenates unique, disjoint lists.
+		\item LiquidHaskell has no \textbf{intersection types}, so an unrefined \texttt{(++.)} is used for those cases.
+	\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{LiquidHaskell XMonad: Restricting the Domain}
+	Given a default value \texttt{x}, a function \texttt{f} and a stack set \texttt{s}, \texttt{modify} applies \texttt{f} to the \texttt{Maybe (Stack a)} values inside \texttt{s}.
+
+	\begin{lstlisting}[language=Haskell]
+modify :: Maybe (Stack a)                -- x: default
+       -> (Stack a -> Maybe (Stack a))   -- f: update
+       -> StackSet i l a s sd            -- s: input
+       -> StackSet i l a s sd
+\end{lstlisting}
+
+	\begin{itemize}
+		\item It should not introduce a \textbf{duplicate window}.
+	\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{LiquidHaskell XMonad: Restricting the Domain}
+	The refined type only accepts arguments that preserve uniqueness:
+
+	\begin{lstlisting}[language=Haskell]
+modify :: x:{v:Maybe (Stack a) | isNothing v}
+       -> (y:Stack a -> Maybe {v:Stack a | SubElts v y})
+       -> UniqStackSet i l a s sd
+       -> UniqStackSet i l a s sd
+\end{lstlisting}
+
+	\begin{itemize}
+		\item \texttt{f}: the new stack may only contain windows of \texttt{y}: \(\mathit{elts}\;v \subseteq \mathit{elts}\;y\).
+		\item \texttt{x}: its windows could already exist elsewhere in \texttt{s}, so the only safe default is \texttt{Nothing}.
+		\item Result: \texttt{s} stays a \texttt{UniqStackSet}.
+	\end{itemize}
+
+	\textbf{Precondition:} the default value must be \texttt{Nothing}.
+\end{frame}
+
+\begin{frame}{LiquidHaskell XMonad: Summary}
+	Verifying the uniqueness invariant required changes to the code and its specifications:
+
+	\begin{itemize}
+		\item \textbf{Strengthening library functions:} a stronger type for \texttt{(++)}, plus an unrefined \texttt{(++.)} for other uses.
+		\item \textbf{Restricting the domain:} \texttt{modify} only accepts \texttt{Nothing} as its default.
+	\end{itemize}
+
+	\begin{exampleblock}{Takeaway}
+		\vspace{0.1em}
+		Real code sometimes needs \textbf{small rewrites} to verify.
+	\end{exampleblock}
 \end{frame}
 
 \end{document}
