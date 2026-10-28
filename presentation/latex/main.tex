@@ -65,7 +65,11 @@
 
 \begin{document}
 
-{\vfuzz=16pt\maketitle}
+% Metropolis theme reserves footer space but content can safely overflow there
+% This is set so we ignore unrelevant overflow warnings
+\vfuzz=30pt
+
+\maketitle
 
 \section{Haskell Background}
 
