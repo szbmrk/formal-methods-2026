@@ -73,20 +73,8 @@
 
 \section{Haskell Background}
 
-\begin{frame}{Haskell's Type System}
-
-	Haskell is a \textbf{statically typed} language.
-
-	\begin{itemize}
-		\item Every expression has a type.
-		\item Types are checked before the program runs.
-		\item Types are often inferred automatically.
-	\end{itemize}
-
-\end{frame}
-
-
-\begin{frame}[fragile]{Basic Types}
+\begin{frame}[fragile]{Haskell's Type System}
+	Haskell is a \textbf{statically typed} language: every expression has a type, and types are checked before the program runs.
 
 	Some common built-in types:
 
@@ -99,25 +87,36 @@ Bool      -- True or False
 Char      -- single character
 String    -- text
 \end{lstlisting}
-
 \end{frame}
 
 
-\begin{frame}[fragile]{Type Annotations}
+\begin{frame}[fragile]{Type Annotations and Inference}
+	The operator :: means ``has type''. Annotations are optional: Haskell can \textbf{infer} most types.
 
-	The operator :: means ``has type''.
-
-	\begin{lstlisting}[language=Haskell]
+	\begin{columns}[T]
+		\begin{column}{0.45\textwidth}
+			Annotated:
+			\begin{lstlisting}[language=Haskell]
 age :: Int
 age = 23
 
 name :: String
 name = "Mark"
-
-active :: Bool
-active = True
 \end{lstlisting}
+		\end{column}
+		\begin{column}{0.5\textwidth}
+			Inferred, inspected in GHCi:
+			\begin{lstlisting}[language=Haskell]
+double x = x * 2
 
+:t True
+True :: Bool
+
+:t double
+double :: Num a => a -> a
+\end{lstlisting}
+		\end{column}
+	\end{columns}
 \end{frame}
 
 
@@ -141,29 +140,7 @@ int add(int x, int y) { return x + y; }
 \end{frame}
 
 
-\begin{frame}[fragile]{Type Inference}
 
-	Haskell can infer many types automatically.
-
-	\begin{lstlisting}[language=Haskell]
-age = 23
-double x = x * 2
-\end{lstlisting}
-
-	In GHCi we can inspect inferred types:
-
-	\begin{lstlisting}[language=Haskell]
-:t True
-True :: Bool
-
-:t "hello"
-"hello" :: String
-
-:t double
-double :: Num a => a -> a
-\end{lstlisting}
-
-\end{frame}
 
 \begin{frame}[fragile]{Limits of The Type System}
 	We can't define constraints for the types of a function like:
@@ -185,14 +162,20 @@ sqrtRoot x
 
 \section{Refinement Types and LiquidHaskell}
 
-\begin{frame}{LiquidHaskell}
+\begin{frame}[fragile]{LiquidHaskell}
 	Many of these properties and relationships can be verified using a combination of \textbf{Refinement Types} and \textbf{external SMT solvers}.
 
 	This paper introduces and experiments with \textbf{LiquidHaskell} a refinement typechecker used to verify more than \textbf{10,000} lines of Haskell code across popular libraries.
 
 	Including: \emph{bytestring}, \emph{text}, \emph{vector-algorithms} and \emph{xmonad}.
 
+	\begin{exampleblock}{Optional checker}
+		\vspace{0.1em}
+		Refinement types are written inside \texttt{\{-@ ... @-\}} comments, so normal Haskell compilers ignore them. Verification happens before the program runs and adds no runtime checks.
+	\end{exampleblock}
 \end{frame}
+
+
 
 \begin{frame}[fragile]{Refinement Types}
 
@@ -236,77 +219,39 @@ sqrtRoot x
 
 \begin{frame}{LiquidHaskell Architecture}
 	\begin{columns}[T]
-		\begin{column}{0.6\textwidth}
+		\begin{column}{0.58\textwidth}
 			\small
-
-			\textbf{Core}
 			\begin{itemize}
-				\item Core is a simpler intermediate representation (GHC translates Haskell source to it)
-				\item Source locations are preserved for error reporting
-			\end{itemize}
-
-			\vspace{0.5em}
-
-			\textbf{Constraints}
-			\begin{itemize}
-				\item Refinement types are translated into logical constraints
-				\item These constraints describe the properties that must hold
+				\item \textbf{Core:} GHC translates Haskell into a simpler intermediate representation; source locations are kept for error reporting.
+				\item \textbf{Constraints:} refinement types become logical constraints that must hold.
+				\item \textbf{Solution:} a fixpoint algorithm and an SMT solver (e.g.\ \emph{Z3}, \emph{CVC4}) check whether the constraints can be satisfied.
+				\item \textbf{Result:} \textbf{SAFE}, or \textbf{UNSAFE} with errors mapped back to source locations.
 			\end{itemize}
 		\end{column}
 
 		\begin{column}{0.4\textwidth}
 			\centering
-			\includegraphics[
-				width=\textwidth,
-				height=0.8\textheight,
-				keepaspectratio
-			]{assets/lh-p1.pdf}
+			\begin{tikzpicture}[
+					x=1cm, y=1cm,
+					font=\scriptsize,
+					flowbox/.style={draw=themeText, rounded corners=2pt, fill=themeTrack!50, align=center, minimum width=3.4cm, minimum height=0.55cm},
+					resultbox/.style={flowbox, minimum width=1.6cm},
+					arr/.style={->, draw=themeText}
+				]
+				\node[flowbox] (src) at (0, 0) {Haskell source code};
+				\node[flowbox] (core) at (0, -0.9) {GHC Core};
+				\node[flowbox] (cons) at (0, -1.8) {Logical constraints};
+				\node[flowbox] (smt) at (0, -2.7) {Fixpoint + SMT solver};
+				\node[resultbox, fill=themeExample!25] (safe) at (-0.9, -3.75) {SAFE};
+				\node[resultbox, fill=themeAlert!20] (unsafe) at (0.9, -3.75) {UNSAFE};
+				\draw[arr] (src) -- (core);
+				\draw[arr] (core) -- (cons);
+				\draw[arr] (cons) -- (smt);
+				\draw[arr] (smt) -- (safe);
+				\draw[arr] (smt) -- (unsafe);
+			\end{tikzpicture}
 		\end{column}
 	\end{columns}
-\end{frame}
-
-\begin{frame}{LiquidHaskell Architecture}
-	\begin{columns}[T]
-		\begin{column}{0.6\textwidth}
-			\small
-
-			\textbf{Solution}
-			\begin{itemize}
-				\item A fixpoint algorithm processes the constraints
-				\item Any \emph{SMT-LIB2} compatible solver checks whether the constraints can be satisfied (eg.: \emph{Z3}, \emph{CVC4}, \dots)
-			\end{itemize}
-
-			\vspace{0.5em}
-
-			\textbf{Result}
-			\begin{itemize}
-				\item \textbf{SAFE} or \textbf{UNSAFE}: based on the verification of the refinements
-				\item Errors are mapped back to their source-code locations
-			\end{itemize}
-		\end{column}
-
-		\begin{column}{0.4\textwidth}
-			\centering
-			\includegraphics[
-				width=\textwidth,
-				height=0.8\textheight,
-				keepaspectratio
-			]{assets/lh-p2.pdf}
-		\end{column}
-	\end{columns}
-\end{frame}
-
-\begin{frame}[fragile]{LiquidHaskell}
-	LiquidHaskell is an \textbf{optional} type checker for Haskell. Refinement types are written inside \textbf{comments}, so they are optional and normal Haskell compilers can ignore them:
-
-	\begin{lstlisting}[language=Haskell]
-{-@ ... @-}
-\end{lstlisting}
-
-	\begin{exampleblock}{Execution}
-		\vspace{0.1em}
-		LiquidHaskell performs static verification before the Haskell program is executed. It does not become part of the executable or perform any checks during runtime.
-	\end{exampleblock}
 \end{frame}
 
 \begin{frame}[fragile]{LiquidHaskell Basics}
@@ -347,32 +292,13 @@ good = divide 5 2
 
 \end{frame}
 
-\begin{frame}[fragile]{LiquidHaskell Parameterized Types}
-	\textbf{Type parameters} are written as lowercase and \textbf{value parameters} are written as uppercase.
 
-	\begin{itemize}
-		\item \textbf{Type parameter:} \emph{Int}, \emph{Bool}, \emph{[Int]}
-		\item \textbf{Value parameter:} \emph{0}, \emph{10}, \emph{100}
-	\end{itemize}
-
-	\begin{lstlisting}[language=Haskell]
-{-@ type NonEmpty a = {v:[a] | len v > 0} @-}
-
-{-@ numbers :: NonEmpty Int @-}
-numbers :: [Int]
-(*@\codeerror{numbers = []}@*)
-
-{-@ letters :: NonEmpty Char @-}
-letters :: [Char]
-letters = ['a', 'b', 'c']
-\end{lstlisting}
-\end{frame}
 
 \begin{frame}[fragile]{LiquidHaskell Parameterized Types}
-	\medskip
+	\textbf{Value parameters} are written in uppercase: here \texttt{Low} and \texttt{High}.
+
 	\begin{lstlisting}[language=Haskell]
 {-@ type Rng Low High = {v:Int | v >= Low && v <= High} @-}
-
 {-@ grade :: Rng 0 100 -> Int @-}
 grade :: Int -> Int
 grade score
@@ -381,7 +307,6 @@ grade score
     | score >= 60 = 3
     | score >= 50 = 2
     | otherwise   = 1
-
 good = grade 85
 (*@\codeerror{bad  = grade 120}@*)
 \end{lstlisting}
@@ -450,34 +375,20 @@ bad :: [Int]
 
 	\begin{lstlisting}[language=Haskell]
 []  :: {v:[a] | myLen v == 0}
-
-(:) :: x:a -> xs:[a]
-    -> {v:[a] | myLen v == 1 + myLen xs}
+(:) :: x:a -> xs:[a] -> {v:[a] | myLen v == 1 + myLen xs}
 \end{lstlisting}
 
-	\begin{itemize}
-		\item \texttt{[]}: the length is zero.
-		\item \texttt{x:xs}: the length is one more than \texttt{xs}.
-		\item These facts are available when building or pattern matching on lists.
-	\end{itemize}
-\end{frame}
-
-\begin{frame}[fragile]{LiquidHaskell Measures: Using a Constructor Fact}
-	Adding an element increases the minimum length.
+	These facts prove that adding an element increases the minimum length:
 
 	\begin{lstlisting}[language=Haskell]
 {-@ prepend :: a -> MinLength a 2 -> MinLength a 3 @-}
-prepend :: a -> [a] -> [a]
 prepend x xs = x : xs
 
 good = prepend 1 [2, 3]
 (*@\codeerror{bad = prepend 1 [2]}@*)
 \end{lstlisting}
 
-	\begin{itemize}
-		\item Input contract: \(\mathit{myLen}\;xs \ge 2\).
-		\item Constructor fact: \(\mathit{myLen}\;(x:xs) = 1 + \mathit{myLen}\;xs \ge 3\).
-	\end{itemize}
+	\(\mathit{myLen}\;xs \ge 2\), so \(\mathit{myLen}\;(x:xs) = 1 + \mathit{myLen}\;xs \ge 3\).
 \end{frame}
 
 \begin{frame}[fragile]{LiquidHaskell Refined Data Types}
@@ -533,24 +444,7 @@ bad =  CSV ["Month", "Days"]
 \end{frame}
 
 \begin{frame}[fragile]{LiquidHaskell Refined Type Classes}
-	A \textbf{type class} defines a shared interface for different types.
-
-	\begin{lstlisting}[language=Haskell]
-class Reward a where
-  reward :: a -> Int -> Int
-\end{lstlisting}
-
-	\begin{itemize}
-		\item \texttt{a}: the type that determines the reward policy.
-		\item \texttt{reward}: takes a policy value and the current points.
-		\item Each instance provides its own implementation.
-	\end{itemize}
-
-	\textbf{Shared rule:} points must be non-negative and cannot decrease.
-\end{frame}
-
-\begin{frame}[fragile]{LiquidHaskell Refined Type Classes: Contract}
-	Refinements specify a \textbf{shared contract} for the class method.
+	A \textbf{type class} defines a shared interface. Refinements give the method a \textbf{shared contract}:
 
 	\begin{lstlisting}[language=Haskell]
 {-@ class Reward a where
@@ -586,36 +480,21 @@ instance Reward Bool where
 \end{frame}
 
 \begin{frame}[fragile]{LiquidHaskell Refined Type Classes: Verification}
-	\begin{lstlisting}[language=Haskell]
-good :: Int
-good = reward True 20
+	\textbf{Callers} must meet the precondition:
 
-bad :: Int
-(*@\codeerror{bad = reward True (-1)}@*)
+	\begin{lstlisting}[language=Haskell]
+good = reward True 20      -- returns 30
+(*@\codeerror{bad = reward True (-1)}@*)    -- violates points >= 0
 \end{lstlisting}
 
-	\begin{itemize}
-		\item \textbf{SAFE:} \texttt{good} passes non-negative points and returns 30.
-		\item \textbf{UNSAFE:} \texttt{bad} violates the precondition \(points \ge 0\).
-	\end{itemize}
-\end{frame}
-
-\begin{frame}[fragile]{LiquidHaskell Refined Type Classes: Invalid Instance}
-	What if we replace the bonus with a deduction?
+	\textbf{Instances} must prove the postcondition. A deduction breaks it:
 
 	\begin{lstlisting}[language=Haskell]
--- alternative implementation:
 instance Reward Bool where
   reward bonus points
-    | bonus     = (*@\codeerror{points - 10}@*)
+    | bonus     = (*@\codeerror{points - 10}@*)    -- violates v >= points
     | otherwise = points
 \end{lstlisting}
-
-	\begin{itemize}
-		\item The first branch violates \(v \ge points\).
-		\item Callers must meet the precondition.
-		\item Instances must prove the postcondition.
-	\end{itemize}
 \end{frame}
 
 \section{Totality and Advanced Termination}
