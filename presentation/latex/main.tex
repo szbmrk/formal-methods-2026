@@ -180,13 +180,13 @@ double :: Num a => a -> a
 		\item Relationships between values: a > b
 	\end{itemize}
 
-	To check for positivity we need a dynamic test:
+	To check that the input is non-negative, we need a dynamic test:
 
 	\begin{lstlisting}[language=Haskell]
 sqrtRoot :: Double -> Double
 sqrtRoot x
-  | x > 0 = sqrt x
-  | otherwise = error "x must be greater than 0"
+  | x >= 0    = sqrt x
+  | otherwise = error "x must be non-negative"
 \end{lstlisting}
 \end{frame}
 
@@ -684,30 +684,18 @@ fac n = n * fac (n - 1)
 \end{frame}
 
 \begin{frame}[fragile]{LiquidHaskell Termination: Lexicographic Ordering}
-	Compare the \textbf{batch count first}, then the job count.
+	The metric is written in the function's signature:
 
 	\begin{lstlisting}[language=Haskell]
 {-@ jobs :: b:Nat -> j:Nat -> Nat / [b, j] @-}
-jobs :: Int -> Int -> Int
-jobs b j
-  | b == 0    = 0
-  | j > 0     = 1 + jobs b (j - 1)
-  | b == 1    = 0
-  | otherwise = jobs (b - 1) 3
 \end{lstlisting}
 
-	\texttt{jobs} returns with the total number of jobs completed.
-
-\end{frame}
-
-\begin{frame}{LiquidHaskell Termination: Why the Pair Decreases}
 	\texttt{/ [b, j]} uses \textbf{lexicographic ordering}: compare \texttt{b} first, and compare \texttt{j} only when \texttt{b} is unchanged.
 
 	\begin{itemize}
-		\item \texttt{jobs b (j - 1)}: the first component stays equal, the second decreases.
-		\item \texttt{jobs (b - 1) 3}: the first component decreases.
-		\item Both components remain non-negative.
-		\item At \texttt{b == 0}, or when the last batch is empty (\texttt{b == 1} and \texttt{j == 0}), recursion stops.
+		\item Completing a job, \((b, j) \to (b, j-1)\): \texttt{b} stays equal, \texttt{j} decreases.
+		\item Next batch, \((b, 0) \to (b-1, 3)\): \texttt{b} decreases, so \texttt{j} may grow.
+		\item Both components stay non-negative, so the pair cannot decrease forever.
 	\end{itemize}
 \end{frame}
 
@@ -734,7 +722,7 @@ data Tree a = Leaf
 	A tree is only a valid Red-Black tree if:
 
 	\begin{itemize}
-		\item \textbf{Order:} all keys in the left subtree are smaller than the node's keyand all keys in the right subtree are larger.
+		\item \textbf{Order:} all keys in the left subtree are smaller than the node's key and all keys in the right subtree are larger.
 		\item \textbf{Color:} a red node has only black children. Empty leaves count as black.
 		\item \textbf{Height:} from any node, every path to a leaf contains the same number of black nodes.
 	\end{itemize}
@@ -824,6 +812,8 @@ isRB (Node c x l r) = isRB l && isRB r &&
 		\item \texttt{isB}: the root is black; empty leaves count as black.
 		\item \texttt{isRB}: red nodes have black children, recursively.
 	\end{itemize}
+
+	\textbf{Paper notation:} from here on, specifications are shown without the \texttt{\{-@ @-\}} comment wrappers.
 \end{frame}
 
 \begin{frame}[fragile]{LiquidHaskell Red-Black Trees: Checking Height}
