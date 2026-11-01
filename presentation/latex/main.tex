@@ -932,14 +932,12 @@ type RBT a = {v:OTree a | isRB v && isBal v}
 	The case studies also showed limitations of LiquidHaskell.
 
 	\begin{itemize}
-		\item Ghost parameters
-		\item Fixed-width integers and floating-point numbers
-		\item Higher-order functions
-		\item Functions as data
-		\item Lazy binders
-		\item Assumes
-		\item Error messages
+		\item \textbf{Ghost parameters:} values needed only for the proof must still be passed as extra arguments.
+		\item \textbf{Fixed-width numbers:} integers are treated as unbounded and floats as exact reals, so overflow and rounding are not captured.
+		\item \textbf{Higher-order functions:} when a function is passed as an argument, its behaviour often has to be specified by hand.
 	\end{itemize}
+
+	The paper lists several \textbf{further limitations} as well.
 
 	\begin{exampleblock}{Workaround}
 		\vspace{0.1em}
