@@ -136,7 +136,10 @@ add x y = x + y
 		\item Last Int: result
 	\end{itemize}
 
-	Equivalent in a C-like language:
+	Every function takes one argument: \texttt{Int -> Int -> Int} means
+	\texttt{Int -> (Int -> Int)}, so \texttt{add 1} is a function \texttt{Int -> Int}.
+
+	Roughly equivalent (uncurried) in a C-like language:
 
 	\begin{lstlisting}[language=C]
 int add(int x, int y) { return x + y; }
