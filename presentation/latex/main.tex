@@ -902,30 +902,23 @@ type RBT a = {v:OTree a | isRB v && isBal v}
 
 \begin{frame}{LiquidHaskell Evaluation: Results}
 	\centering
-	\resizebox{\textwidth}{!}{%
-		\begin{tabular}{@{}lrrrrrrr@{}}
-			\toprule
-			\textbf{Module}   & \textbf{LOC} & \textbf{Mod} & \textbf{Fun} & \textbf{Specs} & \textbf{Annot} & \textbf{Qualif} & \textbf{Time (s)} \\
-			\midrule
-			GHC.List          & 309          & 1            & 66           & 29 / 38        & 6 / 6          & 0 / 0           & 15                \\
-			Data.List         & 504          & 1            & 97           & 15 / 26        & 6 / 6          & 3 / 3           & 11                \\
-			Data.Map.Base     & 1396         & 1            & 180          & 125 / 173      & 13 / 13        & 0 / 0           & 174               \\
-			Data.Set.Splay    & 149          & 1            & 35           & 27 / 37        & 5 / 5          & 0 / 0           & 27                \\
-			HsColour          & 1047         & 16           & 234          & 19 / 40        & 5 / 5          & 1 / 1           & 196               \\
-			XMonad.StackSet   & 256          & 1            & 106          & 74 / 213       & 3 / 3          & 4 / 4           & 27                \\
-			ByteString        & 3505         & 8            & 569          & 307 / 465      & 55 / 55        & 47 / 124        & 294               \\
-			Text              & 3128         & 17           & 493          & 305 / 717      & 52 / 54        & 49 / 97         & 499               \\
-			Vector-Algorithms & 1218         & 10           & 99           & 76 / 266       & 9 / 9          & 13 / 13         & 89                \\
-			\midrule
-			\textbf{Total}    & 11512        & 56           & 1879         & 977 / 1975     & 154 / 156      & 117 / 242       & 1336              \\
-			\bottomrule
-		\end{tabular}%
-	}
-
-	\raggedright
-	\footnotesize
-	\medskip
-	\textbf{Specs, Annot, Qualif:} count / lines of type specifications, other annotations (invariants, termination hints) and qualifiers.
+	\begin{tabular}{@{}lrrr@{}}
+		\toprule
+		\textbf{Module}   & \textbf{LOC} & \textbf{Spec lines} & \textbf{Time (s)} \\
+		\midrule
+		GHC.List          & 309          & 38                  & 15                \\
+		Data.List         & 504          & 26                  & 11                \\
+		Data.Map.Base     & 1396         & 173                 & 174               \\
+		Data.Set.Splay    & 149          & 37                  & 27                \\
+		HsColour          & 1047         & 40                  & 196               \\
+		XMonad.StackSet   & 256          & 213                 & 27                \\
+		ByteString        & 3505         & 465                 & 294               \\
+		Text              & 3128         & 717                 & 499               \\
+		Vector-Algorithms & 1218         & 266                 & 89                \\
+		\midrule
+		\textbf{Total}    & 11512        & 1975                & 1336              \\
+		\bottomrule
+	\end{tabular}
 \end{frame}
 
 \begin{frame}{LiquidHaskell Evaluation: What the Numbers Show}
