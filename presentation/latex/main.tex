@@ -848,24 +848,19 @@ isBal (Node c x l r) = bh l == bh r && isBal l && isBal r
 	\end{itemize}
 \end{frame}
 
-\begin{frame}[fragile]{LiquidHaskell Red-Black Trees: Checking Order}
-	\begin{lstlisting}[language=Haskell]
-data Tree a <l :: a -> a -> Prop,
-             r :: a -> a -> Prop>
-  = Leaf
-  | Node { c   :: Col
-         , key :: a
-         , lt  :: Tree <l, r> a <l key>
-         , rt  :: Tree <l, r> a <r key> }
-type OTree a
-  = Tree <{\k v -> v < k},   -- l: left rule
-          {\k v -> v > k}> a -- r: right rule
-\end{lstlisting}
+\begin{frame}{LiquidHaskell Red-Black Trees: Checking Order}
+	Ordering relates each node's key to \textbf{every key below it}, so it is built into the tree type itself.
 
 	\begin{itemize}
-		\item \texttt{l} and \texttt{r}: rules relating keys to subtree values.
-		\item \texttt{OTree}: left keys \(v < k\); right keys \(v > k\).
+		\item The tree type takes two \textbf{rules} as parameters: one for keys in the left subtree, one for the right.
+		\item Each rule compares a node's key \(k\) with a key \(v\) below it.
+		\item \texttt{OTree} sets the left rule to \(v < k\) and the right rule to \(v > k\).
 	\end{itemize}
+
+	\begin{exampleblock}{Result}
+		\vspace{0.1em}
+		Every value of type \texttt{OTree} is a binary search tree.
+	\end{exampleblock}
 \end{frame}
 
 \begin{frame}[fragile]{LiquidHaskell Red-Black Trees: Combining the Rules}
