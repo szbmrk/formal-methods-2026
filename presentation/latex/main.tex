@@ -699,8 +699,10 @@ jobs b j
   | j > 0     = 1 + jobs b (j - 1)
   | b == 1    = 0
   | otherwise = jobs (b - 1) 3
--- jobs 2 3 == 6
 \end{lstlisting}
+
+	\texttt{jobs} returns with the total number of jobs completed.
+
 \end{frame}
 
 \begin{frame}{LiquidHaskell Termination: Why the Pair Decreases}
