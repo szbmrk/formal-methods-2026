@@ -130,16 +130,9 @@ add :: Int -> Int -> Int
 add x y = x + y
 \end{lstlisting}
 
-	\begin{itemize}
-		\item First Int: first argument
-		\item Second Int: second argument
-		\item Last Int: result
-	\end{itemize}
+	Every function takes \textbf{one argument}: \texttt{add} takes \texttt{x} and returns a function that takes \texttt{y}.
 
-	Every function takes one argument: \texttt{Int -> Int -> Int} means
-	\texttt{Int -> (Int -> Int)}, so \texttt{add 1} is a function \texttt{Int -> Int}.
-
-	Roughly equivalent (uncurried) in a C-like language:
+	A C-like version gives the \textbf{same result}, but is not logically the same, since it takes both arguments at once:
 
 	\begin{lstlisting}[language=C]
 int add(int x, int y) { return x + y; }
