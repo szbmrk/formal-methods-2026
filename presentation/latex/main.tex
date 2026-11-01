@@ -1207,21 +1207,6 @@ type RBT a = {v:OTree a | isRB v && isBal v}
 	\end{exampleblock}
 \end{frame}
 
-\begin{frame}{LiquidHaskell Limitations: Ghost Parameters and Numbers}
-	\textbf{Ghost parameters}
-	\begin{itemize}
-		\item Some values are not needed for the computation, only for the proof.
-		\item They must still be passed as extra arguments.
-	\end{itemize}
-
-	\medskip
-	\textbf{Fixed-width integers and floating-point numbers}
-	\begin{itemize}
-		\item Numbers are modelled with linear arithmetic and real numbers.
-		\item Some precision is lost, e.g.\ bitwise operations can only be approximated.
-	\end{itemize}
-\end{frame}
-
 \begin{frame}{References}
 	\begin{itemize}
 		\item Niki Vazou, Eric L. Seidel, Ranjit Jhala. \emph{LiquidHaskell: Experience with Refinement Types in the Real World}. Haskell Symposium, 2014.
