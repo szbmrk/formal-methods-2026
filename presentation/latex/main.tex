@@ -254,6 +254,122 @@ sqrtRoot x
 	\end{columns}
 \end{frame}
 
+\begin{frame}{SMT Solvers}
+	\begin{columns}[c]
+		\begin{column}{0.55\textwidth}
+			\begin{itemize}
+				\item An SMT solver takes a logical formula and answers whether values exist that make it true.
+				\item \textbf{SAT}: yes, and it gives an example.
+				\item \textbf{UNSAT}: no such values exist.
+				\item LiquidHaskell: if the constraints are satisfiable, the program is \textbf{SAFE}.
+			\end{itemize}
+		\end{column}
+
+		\begin{column}{0.43\textwidth}
+			\centering
+			\begin{tikzpicture}[
+					x=1cm, y=1cm,
+					font=\scriptsize,
+					flowbox/.style={draw=themeText, rounded corners=2pt, fill=themeTrack!50, align=center, minimum width=1.9cm, minimum height=0.55cm},
+					arr/.style={->, >=stealth, draw=themeText}
+				]
+				\node[flowbox] (f1) at (0, 0) {\(x > 5 \land x < 10\)};
+				\node[flowbox] (s1) at (0, -0.9) {SMT solver};
+				\node[flowbox, fill=themeExample!25] (r1) at (0, -1.8) {SAT: \(x = 6\)};
+				\node[flowbox] (f2) at (2.4, 0) {\(x > 5 \land x < 3\)};
+				\node[flowbox] (s2) at (2.4, -0.9) {SMT solver};
+				\node[flowbox, fill=themeAlert!20] (r2) at (2.4, -1.8) {UNSAT};
+				\draw[arr] (f1) -- (s1);
+				\draw[arr] (s1) -- (r1);
+				\draw[arr] (f2) -- (s2);
+				\draw[arr] (s2) -- (r2);
+			\end{tikzpicture}
+		\end{column}
+	\end{columns}
+\end{frame}
+
+\begin{frame}{Fixpoints}
+	\begin{columns}[c]
+		\begin{column}{0.62\textwidth}
+			\begin{itemize}
+				\item A \textbf{fixpoint} of \(f\) is a value that \(f\) does not change: \(f(x) = x\).
+				\item To find one, apply \(f\) again and again until the result stays the same.
+			\end{itemize}
+
+			\medskip
+			Example: which nodes can we reach from \(A\)?\\
+			Each step adds the next nodes along the arrows.
+		\end{column}
+
+		\begin{column}{0.36\textwidth}
+			\centering
+			\begin{tikzpicture}[
+					x=1cm, y=1cm,
+					font=\small,
+					graphnode/.style={draw=themeText, circle, fill=themeTrack!50, minimum size=0.7cm},
+					reached/.style={graphnode, fill=themeExample!25},
+					arr/.style={->, >=stealth, draw=themeText}
+				]
+				\node[reached] (a) at (0, 0) {A};
+				\node[reached] (b) at (1.6, 0) {B};
+				\node[reached] (c) at (1.6, -1.6) {C};
+				\node[graphnode] (d) at (0, -1.6) {D};
+				\draw[arr] (a) -- (b);
+				\draw[arr] (b) -- (c);
+				\draw[arr] (d) -- (a);
+			\end{tikzpicture}
+		\end{column}
+	\end{columns}
+
+	\bigskip
+	\centering
+	\begin{tikzpicture}[
+			x=1cm, y=1cm,
+			font=\small,
+			flowbox/.style={draw=themeText, rounded corners=2pt, fill=themeTrack!50, align=center, minimum width=2.4cm, minimum height=0.6cm},
+			arr/.style={->, >=stealth, draw=themeText}
+		]
+		\node[flowbox] (s0) at (0, 0) {\(\{A\}\)};
+		\node[flowbox] (s1) at (3.2, 0) {\(\{A, B\}\)};
+		\node[flowbox] (s2) at (6.4, 0) {\(\{A, B, C\}\)};
+		\node[flowbox, fill=themeExample!25, label={below:no change: fixpoint}] (s3) at (9.6, 0) {\(\{A, B, C\}\)};
+		\draw[arr] (s0) -- (s1);
+		\draw[arr] (s1) -- (s2);
+		\draw[arr] (s2) -- (s3);
+	\end{tikzpicture}
+\end{frame}
+
+\begin{frame}{Fixpoint in LiquidHaskell: Inferring Refinements}
+	\begin{columns}[c]
+		\begin{column}{0.54\textwidth}
+			\begin{itemize}
+				\item The user writes only some refinements. For helper functions and local values LiquidHaskell has to \textbf{infer} them.
+				\item Guesses come from the user's refinements and unprovable ones are dropped.
+				\item Recursion links the checks, so this repeats until nothing changes.
+			\end{itemize}
+		\end{column}
+
+		\begin{column}{0.44\textwidth}
+			\centering
+			\begin{tikzpicture}[
+					x=1cm, y=1cm,
+					font=\footnotesize,
+					flowbox/.style={draw=themeText, rounded corners=2pt, fill=themeTrack!50, align=center, minimum width=3.4cm, minimum height=0.6cm},
+					arr/.style={->, >=stealth, draw=themeText}
+				]
+				\node[flowbox] (guess) at (0, 0) {Assume all guesses};
+				\node[flowbox] (smt) at (0, -1.1) {Check with SMT solver};
+				\node[flowbox] (drop) at (0, -2.2) {Drop unprovable ones};
+				\node[flowbox, fill=themeExample!25] (done) at (0, -3.5) {No change: fixpoint};
+				\draw[arr] (guess) -- (smt);
+				\draw[arr] (smt) -- (drop);
+				\draw[arr] (drop.east) -- ++(0.4, 0) |- node[pos=0.25, right] {repeat} (smt.east);
+				\draw[arr] (drop) -- (done);
+			\end{tikzpicture}
+		\end{column}
+	\end{columns}
+\end{frame}
+
 \begin{frame}[fragile]{LiquidHaskell Basics}
 	\medskip
 	\begin{lstlisting}[language=Haskell]
@@ -807,9 +923,11 @@ type RBT a = {v:OTree a | isRB v && isBal v}
 \end{frame}
 
 \begin{frame}{References}
+	\small
 	\begin{itemize}
 		\item Niki Vazou, Eric L. Seidel, Ranjit Jhala. \emph{LiquidHaskell: Experience with Refinement Types in the Real World}. Haskell Symposium, 2014.
 		\item LiquidHaskell documentation: \url{https://ucsd-progsys.github.io/liquidhaskell}
+		\item Satisfiability modulo theories: \url{https://en.wikipedia.org/wiki/Satisfiability_modulo_theories}
 	\end{itemize}
 \end{frame}
 
