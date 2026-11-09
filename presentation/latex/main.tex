@@ -90,36 +90,6 @@ String    -- text
 \end{frame}
 
 
-\begin{frame}[fragile]{Type Annotations and Inference}
-	The operator :: means ``has type''. Annotations are optional: Haskell can \textbf{infer} most types.
-
-	\begin{columns}[T]
-		\begin{column}{0.45\textwidth}
-			Annotated:
-			\begin{lstlisting}[language=Haskell]
-age :: Int
-age = 23
-
-name :: String
-name = "Mark"
-\end{lstlisting}
-		\end{column}
-		\begin{column}{0.5\textwidth}
-			Inferred, inspected in GHCi:
-			\begin{lstlisting}[language=Haskell]
-double x = x * 2
-
-:t True
-True :: Bool
-
-:t double
-double :: Num a => a -> a
-\end{lstlisting}
-		\end{column}
-	\end{columns}
-\end{frame}
-
-
 \begin{frame}[fragile]{Function Types}
 
 	The arrow (->) separates input and output types.
@@ -261,7 +231,7 @@ sqrtRoot x
 				\item An SMT solver takes a logical formula and answers whether values exist that make it true.
 				\item \textbf{SAT}: yes, and it gives an example.
 				\item \textbf{UNSAT}: no such values exist.
-				\item LiquidHaskell: if the constraints are satisfiable, the program is \textbf{SAFE}.
+				\item LiquidHaskell asks whether a constraint can be \textbf{violated}: UNSAT means it always holds, so the program is \textbf{SAFE}.
 			\end{itemize}
 		\end{column}
 
@@ -376,25 +346,6 @@ sqrtRoot x
 {-@ type Natural = {v:Int | v >= 0} @-}
 {-@ type Pos = {v:Int | v > 0} @-}
 
-{-@ increment :: Natural -> Pos @-}
-increment :: Int -> Int
-increment x = x + 1
-
-good1 = increment 0
-good2 = increment 4
-
--- verification will fail here stating: Type Mismatch
-(*@\codeerror{bad = increment (-1)}@*)
-\end{lstlisting}
-
-\end{frame}
-
-\begin{frame}[fragile]{LiquidHaskell Basics}
-	\medskip
-	\begin{lstlisting}[language=Haskell]
-{-@ type Natural = {v:Int | v >= 0} @-}
-{-@ type Pos = {v:Int | v > 0} @-}
-
 {-@ divide :: n:Natural -> d:Pos -> {v:Natural | v <= n} @-}
 divide :: Int -> Int -> Int
 divide x y = x `div` y
@@ -423,25 +374,6 @@ grade score
     | score >= 60 = 3
     | score >= 50 = 2
     | otherwise   = 1
-good = grade 85
-(*@\codeerror{bad  = grade 120}@*)
-\end{lstlisting}
-\end{frame}
-
-\begin{frame}[fragile]{LiquidHaskell Type Aliases}
-	\textbf{Type Aliases:} used for reusability and readability.
-	\begin{lstlisting}[language=Haskell]
--- with type alias
-{-@ predicate Between Low High V = V >= Low && V <= High @-}
-{-@ type Rng Low High = {v:Int | Between Low High v} @-}
-
--- we can use the predicate inline as well
-{-@ grade :: Rng 0 100 -> {v:Int | Between 1 2 v} @-}
-grade :: Int -> Int
-grade score
-    | score >= 50 = 2
-    | otherwise   = 1
-
 good = grade 85
 (*@\codeerror{bad  = grade 120}@*)
 \end{lstlisting}
@@ -486,27 +418,6 @@ bad :: [Int]
 	\end{itemize}
 \end{frame}
 
-\begin{frame}[fragile]{LiquidHaskell Measures: Constructor Refinements}
-	Each list constructor gives LiquidHaskell a \textbf{length fact}:
-
-	\begin{lstlisting}[language=Haskell]
-[]  :: {v:[a] | myLen v == 0}
-(:) :: x:a -> xs:[a] -> {v:[a] | myLen v == 1 + myLen xs}
-\end{lstlisting}
-
-	These facts prove that adding an element increases the minimum length:
-
-	\begin{lstlisting}[language=Haskell]
-{-@ prepend :: a -> MinLength a 2 -> MinLength a 3 @-}
-prepend x xs = x : xs
-
-good = prepend 1 [2, 3]
-(*@\codeerror{bad = prepend 1 [2]}@*)
-\end{lstlisting}
-
-	\(\mathit{myLen}\;xs \ge 2\), so \(\mathit{myLen}\;(x:xs) = 1 + \mathit{myLen}\;xs \ge 3\).
-\end{frame}
-
 \begin{frame}[fragile]{LiquidHaskell Refined Data Types}
 	Every value of a data type may need to satisfy an \textbf{invariant}.
 
@@ -527,7 +438,7 @@ data CSV a = CSV { cols :: [String], rows :: [[a]] }
 \end{frame}
 
 \begin{frame}[fragile]{LiquidHaskell Refined Data Types: Definition}
-	A field's refinement can refer to an \textbf{earlier field}.
+	A field's refinement can refer to an \textbf{earlier field}: each row must have the same length as \texttt{cols}.
 
 	\begin{lstlisting}[language=Haskell]
 {-@ type ListL a X = {v:[a] | len v == len X} @-}
@@ -536,27 +447,24 @@ data CSV a = CSV { cols :: [String], rows :: [[a]] }
                      , rows :: [ListL a cols] } @-}
 \end{lstlisting}
 
-	\begin{itemize}
-		\item \texttt{ListL a X}: a list with the same length as \texttt{X}.
-		\item \texttt{rows}: a list of rows, each matching the length of \texttt{cols}.
-		\item \texttt{len} is LiquidHaskell's built-in list length measure.
-	\end{itemize}
-\end{frame}
-
-\begin{frame}[fragile]{LiquidHaskell Refined Data Types: Verification}
-	\medskip
-	\begin{lstlisting}[language=Haskell]
+	\begin{columns}[T]
+		\begin{column}{0.48\textwidth}
+			\begin{lstlisting}[language=Haskell]
 good = CSV ["Month", "Days"]
-              [ ["Jan", "31"]
-              , ["Feb", "28"]
-              , ["Mar", "31"] ]
-
-bad =  CSV ["Month", "Days"]
-             [ ["Jan", "31"]
-             , ["Feb", "28"]
-             , (*@\codeerror{["Mar"]}@*) ]
+  [ ["Jan", "31"]
+  , ["Feb", "28"]
+  , ["Mar", "31"] ]
 \end{lstlisting}
-
+		\end{column}
+		\begin{column}{0.48\textwidth}
+			\begin{lstlisting}[language=Haskell]
+bad = CSV ["Month", "Days"]
+  [ ["Jan", "31"]
+  , ["Feb", "28"]
+  , (*@\codeerror{["Mar"]}@*) ]
+\end{lstlisting}
+		\end{column}
+	\end{columns}
 \end{frame}
 
 \begin{frame}[fragile]{LiquidHaskell Refined Type Classes}
@@ -576,40 +484,35 @@ bad =  CSV ["Month", "Days"]
 	\end{itemize}
 \end{frame}
 
-\begin{frame}[fragile]{LiquidHaskell Refined Type Classes: Bool Instance}
-	A Boolean flag decides whether to add a bonus.
+\begin{frame}[fragile]{LiquidHaskell Refined Type Classes: Verification}
+	\textbf{Instances} must prove the postcondition \(v \ge points\):
 
-	\begin{lstlisting}[language=Haskell]
+	\begin{columns}[T]
+		\begin{column}{0.48\textwidth}
+			\textcolor{themeExample}{\textbf{SAFE}}: adds a bonus
+			\begin{lstlisting}[language=Haskell]
 instance Reward Bool where
   reward bonus points
     | bonus     = points + 10
     | otherwise = points
 \end{lstlisting}
+		\end{column}
+		\begin{column}{0.48\textwidth}
+			\textcolor{themeAlert}{\textbf{UNSAFE}}: deducts points
+			\begin{lstlisting}[language=Haskell]
+instance Reward Bool where
+  reward bonus points
+    | bonus     = (*@\codeerror{points - 10}@*)
+    | otherwise = points
+\end{lstlisting}
+		\end{column}
+	\end{columns}
 
-	\begin{itemize}
-		\item \texttt{True}: add 10 points.
-		\item \texttt{False}: keep the original points.
-		\item Both branches satisfy \(v \ge points\).
-	\end{itemize}
-
-	LiquidHaskell checks the instance against the class contract.
-\end{frame}
-
-\begin{frame}[fragile]{LiquidHaskell Refined Type Classes: Verification}
-	\textbf{Callers} must meet the precondition:
+	\textbf{Callers} must meet the precondition \(points \ge 0\):
 
 	\begin{lstlisting}[language=Haskell]
 good = reward True 20      -- returns 30
-(*@\codeerror{bad = reward True (-1)}@*)    -- violates points >= 0
-\end{lstlisting}
-
-	\textbf{Instances} must prove the postcondition. A deduction breaks it:
-
-	\begin{lstlisting}[language=Haskell]
-instance Reward Bool where
-  reward bonus points
-    | bonus     = (*@\codeerror{points - 10}@*)    -- violates v >= points
-    | otherwise = points
+(*@\codeerror{bad = reward True (-1)}@*)
 \end{lstlisting}
 \end{frame}
 
@@ -689,36 +592,14 @@ fac n = n * fac (n - 1)
 
 \section{Functional Correctness Invariants}
 
-\begin{frame}[fragile]{LiquidHaskell Functional Correctness}
-	Beyond avoiding errors, refinements can express \textbf{application-specific correctness rules}.
-
-	\medskip
-	The paper's example: \textbf{red-black trees}, a balanced binary search tree structure.
-
-	\begin{lstlisting}[language=Haskell]
-data Col    = R | B
-data Tree a = Leaf
-            | Node Col a (Tree a) (Tree a)
-\end{lstlisting}
-
-	\begin{itemize}
-		\item \texttt{Col}: the color; \texttt{a}: the key; followed by the left and right subtrees.
-	\end{itemize}
-\end{frame}
-
-\begin{frame}{LiquidHaskell Red-Black Trees: Three Invariants}
-	A tree is only a valid Red-Black tree if:
+\begin{frame}{LiquidHaskell Functional Correctness: Red-Black Trees}
+	Beyond avoiding errors, refinements can express \textbf{application-specific correctness rules}. The paper's example: \textbf{red-black trees}, a balanced binary search tree.
 
 	\begin{itemize}
 		\item \textbf{Order:} all keys in the left subtree are smaller than the node's key and all keys in the right subtree are larger.
 		\item \textbf{Color:} a red node has only black children. Empty leaves count as black.
 		\item \textbf{Height:} from any node, every path to a leaf contains the same number of black nodes.
 	\end{itemize}
-
-	\begin{exampleblock}{Main idea}
-		\vspace{0.1em}
-		Describe these properties separately, then combine them without changing the underlying tree structure.
-	\end{exampleblock}
 \end{frame}
 
 \begin{frame}{LiquidHaskell Red-Black Trees: Valid and Invalid}
@@ -784,117 +665,22 @@ data Tree a = Leaf
 	\emph{Black squares represent empty leaves.}
 \end{frame}
 
-\begin{frame}[fragile]{LiquidHaskell Red-Black Trees: Checking Color}
-	\begin{lstlisting}[language=Haskell]
-measure isB :: Tree a -> Prop
-isB (Node c x l r) = c == B
-isB (Leaf) = true
-
-measure isRB :: Tree a -> Prop
-isRB (Leaf) = true
-isRB (Node c x l r) = isRB l && isRB r &&
-                    c == R => (isB l && isB r)
-\end{lstlisting}
-
+\begin{frame}{LiquidHaskell Red-Black Trees: Checking the Invariants}
 	\begin{itemize}
-		\item \texttt{isB}: the root is black; empty leaves count as black.
-		\item \texttt{isRB}: red nodes have black children, recursively.
-	\end{itemize}
-
-	\textbf{Paper notation:} from here on, specifications are shown without the \texttt{\{-@ @-\}} comment wrappers.
-\end{frame}
-
-\begin{frame}[fragile]{LiquidHaskell Red-Black Trees: Checking Height}
-	\begin{lstlisting}[language=Haskell]
-measure bh :: Tree a -> Int
-bh (Leaf) = 0
-bh (Node c x l r) = bh l + if c == R then 0 else 1
-
-measure isBal :: Tree a -> Prop
-isBal (Leaf) = true
-isBal (Node c x l r) = bh l == bh r && isBal l && isBal r
-\end{lstlisting}
-
-	\begin{itemize}
-		\item \texttt{bh}: count black nodes along the leftmost path.
-		\item \texttt{isBal}: require equal black heights, recursively.
-	\end{itemize}
-\end{frame}
-
-\begin{frame}{LiquidHaskell Red-Black Trees: Checking Order}
-	Ordering relates each node's key to \textbf{every key below it}, so it is built into the tree type itself.
-
-	\begin{itemize}
-		\item The tree type takes two \textbf{rules} as parameters: one for keys in the left subtree, one for the right.
-		\item Each rule compares a node's key \(k\) with a key \(v\) below it.
-		\item \texttt{OTree} sets the left rule to \(v < k\) and the right rule to \(v > k\).
+		\item \textbf{Color} and \textbf{height} are checked by \textbf{measures}: recursive functions over the tree, like \texttt{myLen} earlier.
+		\item \textbf{Order} is built into the tree type itself: its parameters require smaller keys on the left and larger keys on the right.
+		\item The valid red-black tree type combines all three, without changing the underlying tree structure.
 	\end{itemize}
 
 	\begin{exampleblock}{Result}
 		\vspace{0.1em}
-		Every value of type \texttt{OTree} is a binary search tree.
+		LiquidHaskell verifies the library's \textbf{insertion, deletion, and rebalancing} procedures.
 	\end{exampleblock}
-\end{frame}
-
-\begin{frame}[fragile]{LiquidHaskell Red-Black Trees: Combining the Rules}
-	Combining ordering, color, and black-height balance:
-
-	\begin{lstlisting}[language=Haskell]
-type RBT a = {v:OTree a | isRB v && isBal v}
-\end{lstlisting}
-
-	\begin{itemize}
-		\item \texttt{OTree}: keys follow binary-search ordering.
-		\item \texttt{isRB}: red nodes have black children.
-		\item \texttt{isBal}: all paths have equal black heights.
-	\end{itemize}
-
-	With these invariants and suitable function signatures, LiquidHaskell verifies the library's \textbf{insertion, deletion, and rebalancing} procedures.
 \end{frame}
 
 \section{Evaluation}
 
-\begin{frame}{LiquidHaskell Evaluation: Benchmarks}
-	\footnotesize
-	\centering
-	\begin{tabular}{@{}ll@{}}
-		\toprule
-		\textbf{Library}    & \textbf{Verified properties}                      \\
-		\midrule
-		GHC.List, Data.List & size properties of list operations                \\
-		Data.Set.Splay      & termination, well-ordered splay trees             \\
-		Data.Map.Base       & termination, binary-search ordered trees          \\
-		HsColour            & totality of all functions                         \\
-		XMonad              & window uniqueness, some QuickCheck properties     \\
-		ByteString          & termination, memory safety, correctness           \\
-		Text                & pointer safety, correctness (\alert{found a bug}) \\
-		Vector-Algorithms   & safe vector accessing, indexing and slicing       \\
-		\bottomrule
-	\end{tabular}
-\end{frame}
-
-\begin{frame}{LiquidHaskell Evaluation: Results}
-	\centering
-	\begin{tabular}{@{}lrrr@{}}
-		\toprule
-		\textbf{Module}   & \textbf{LOC} & \textbf{Spec lines} & \textbf{Time (s)} \\
-		\midrule
-		GHC.List          & 309          & 38                  & 15                \\
-		Data.List         & 504          & 26                  & 11                \\
-		Data.Map.Base     & 1396         & 173                 & 174               \\
-		Data.Set.Splay    & 149          & 37                  & 27                \\
-		HsColour          & 1047         & 40                  & 196               \\
-		XMonad.StackSet   & 256          & 213                 & 27                \\
-		ByteString        & 3505         & 465                 & 294               \\
-		Text              & 3128         & 717                 & 499               \\
-		Vector-Algorithms & 1218         & 266                 & 89                \\
-		\midrule
-		\textbf{Total}    & 11512        & 1975                & 1336              \\
-		\bottomrule
-	\end{tabular}
-\end{frame}
-
-\begin{frame}{LiquidHaskell Evaluation: What the Numbers Show}
+\begin{frame}{LiquidHaskell Evaluation}
 	\begin{itemize}
 		\item \textbf{11,512} lines of code in 56 modules, checked with \textbf{1,975} lines of specifications.
 		\item Hints (annotations and qualifiers) add only \textbf{3.5\%} of the code size.
